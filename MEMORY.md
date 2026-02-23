@@ -5,6 +5,10 @@
 - **Voice Response Rule**: When Anthony sends a voice message, respond with voice unless he explicitly requests text response.
 - **Default TTS Voice**: `af_nova` (warm, natural female voice via Kokoro TTS)
 
+## Telegram Settings
+
+- **Streaming disabled**: Set `streaming: false` in `.channels.telegram` - `streaming: true` caused double messages (incremental updates appeared as separate Telegram messages)
+
 ## Communication
 
 - **Primary Contact**: Anthony Lattanzio
@@ -59,3 +63,39 @@ Group ID: `-1003850499454`
 ---
 
 *Update this file with significant learnings and preferences over time.*
+## Knowledge Base (RAG)
+
+- **Collections**: `kb_sources`, `kb_chunks`
+- **Embeddings**: Gemini embedding-001 (768-dim)
+- **Usage**: `python3 skills/knowledge-base/scripts/retrieve.py "query"`
+
+## True-Recall Memory System
+
+### Architecture
+- **Capture**: Turns → Redis `mem:antlatt` (manual/hook staging)
+- **Curation**: 2:30 AM cron (`qwen3:8b` extracts gems)
+- **Storage**: Qdrant `true_recall` collection (1024-dim, `mxbai-embed-large`)
+- **Retrieval**: On-demand search via `.projects/true-recall/tr-out/scripts/search_memories.py`
+
+### Cron Schedule
+| Time | Job |
+|------|-----|
+| 2:30 AM | True-Recall curator (processes Redis → Qdrant) |
+| 3:00 AM | jarvis-memory backup |
+| 3:30 AM | File archive |
+
+### Key Files
+- **Curator**: `.projects/true-recall/tr-process/curate_memories.py`
+- **Search**: `.projects/true-recall/tr-out/scripts/search_memories.py`
+- **Config**: `.projects/true-recall/.env`
+- **Prompt**: `.projects/true-recall/curator_prompt.md`
+
+### Usage
+```bash
+# Search memories
+python3 .projects/true-recall/tr-out/scripts/search_memories.py "your query"
+
+# Run curator manually
+python3 .projects/true-recall/tr-process/curate_memories.py --user-id antlatt
+```
+
