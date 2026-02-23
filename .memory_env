@@ -1,0 +1,6 @@
+# Memory System Environment
+export USER_ID="antlatt"
+export REDIS_HOST="192.168.1.206"
+export REDIS_PORT="6379"
+export QDRANT_URL="http://192.168.1.202:6333"
+export OLLAMA_URL="http://192.168.1.207:11434"
