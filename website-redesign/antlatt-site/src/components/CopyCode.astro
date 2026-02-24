@@ -1,0 +1,42 @@
+---
+// Copy code button component - adds copy functionality to all code blocks
+---
+
+<script>
+  document.querySelectorAll('pre code').forEach((block) => {
+    const pre = block.parentElement!;
+    if (!pre) return;
+    
+    const button = document.createElement('button');
+    button.className = 'copy-btn';
+    button.textContent = 'Copy';
+    
+    button.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(block.textContent || '');
+      button.textContent = 'Copied!';
+      setTimeout(() => button.textContent = 'Copy', 2000);
+    });
+    
+    pre.style.position = 'relative';
+    pre.appendChild(button);
+  });
+</script>
+
+<style>
+  .copy-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    color: inherit;
+    font-size: 0.75rem;
+    transition: background 0.2s;
+  }
+  .copy-btn:hover {
+    background: rgba(255,255,255,0.2);
+  }
+</style>

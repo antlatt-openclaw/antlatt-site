@@ -5,26 +5,92 @@ import { getCollection } from 'astro:content';
 
 const builds = await getCollection('builds');
 const sortedBuilds = builds.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const allTags = [...new Set(builds.flatMap(b => b.data.tags || []))].sort();
 ---
 
 <BaseLayout title="Builds | ANTLATT.COM">
   <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
     <h1 class="text-4xl font-bold mb-4">Builds & Projects</h1>
-    <p class="text-text-muted text-lg mb-12">
+    <p class="text-text-muted text-lg mb-8">
       Hardware projects, server builds, and various technical experiments.
     </p>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <!-- Tag Filters -->
+    <div class="tag-filters flex flex-wrap gap-2 mb-8">
+      <button class="tag-btn active" data-tag="all">All</button>
+      {allTags.map(tag => (
+        <button class="tag-btn" data-tag={tag}>{tag}</button>
+      ))}
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="builds-grid">
       {sortedBuilds.map((build) => (
-        <Card
-          title={build.data.title}
-          description={build.data.description}
-          href={`/builds/${build.slug}`}
-          image={build.data.image}
-          tags={build.data.tags}
-          date={build.data.date.toISOString()}
-        />
+        <div class="build-card" data-tags={(build.data.tags || []).join(',').toLowerCase()}>
+          <Card
+            title={build.data.title}
+            description={build.data.description}
+            href={`/builds/${build.slug}`}
+            image={build.data.image}
+            tags={build.data.tags}
+            date={build.data.date.toISOString()}
+          />
+        </div>
       ))}
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  .tag-filters {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border, #2a2a3e);
+    margin-bottom: 2rem;
+  }
+  .tag-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid var(--border, #2a2a3e);
+    background: transparent;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tag-btn:hover {
+    border-color: var(--accent, #a78bfa);
+    color: var(--text, #fff);
+  }
+  .tag-btn.active {
+    background: var(--accent, #a78bfa);
+    border-color: var(--accent, #a78bfa);
+    color: #000;
+  }
+  .build-card.hidden {
+    display: none;
+  }
+</style>
+
+<script>
+  const tagButtons = document.querySelectorAll('.tag-btn');
+  const buildCards = document.querySelectorAll('.build-card');
+
+  tagButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Update active state
+      tagButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const selectedTag = btn.getAttribute('data-tag');
+      
+      buildCards.forEach(card => {
+        const cardTags = card.getAttribute('data-tags') || '';
+        if (selectedTag === 'all' || cardTags.includes(selectedTag)) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    });
+  });
+</script>

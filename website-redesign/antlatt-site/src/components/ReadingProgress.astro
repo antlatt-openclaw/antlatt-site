@@ -1,0 +1,33 @@
+---
+// Reading progress indicator - shows progress bar at top of page
+---
+
+<div class="reading-progress" id="reading-progress"></div>
+
+<script>
+  const progress = document.getElementById('reading-progress');
+  
+  function updateProgress() {
+    if (!progress) return;
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const percent = (scrollTop / docHeight) * 100;
+    progress.style.width = `${percent}%`;
+  }
+  
+  window.addEventListener('scroll', updateProgress, { passive: true });
+  document.addEventListener('DOMContentLoaded', updateProgress);
+</script>
+
+<style>
+  .reading-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--accent, #a78bfa);
+    width: 0;
+    z-index: 9999;
+    transition: width 0.1s ease-out;
+  }
+</style>

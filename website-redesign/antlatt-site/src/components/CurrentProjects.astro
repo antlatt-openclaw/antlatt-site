@@ -1,0 +1,86 @@
+---
+import projectsJson from '../data/currentProjects.json';
+
+const statusColors: Record<string, string> = {
+  'in-progress': 'bg-yellow-500',
+  'testing': 'bg-blue-500',
+  'ongoing': 'bg-green-500',
+  'planning': 'bg-gray-500'
+};
+
+const statusLabels: Record<string, string> = {
+  'in-progress': 'In Progress',
+  'testing': 'Testing',
+  'ongoing': 'Ongoing',
+  'planning': 'Planning'
+};
+---
+
+<section class="current-projects">
+  <h2>What I'm Working On</h2>
+  <div class="projects-grid">
+    {projectsJson.map((project) => (
+      <div class="project-card">
+        <div class="project-header">
+          <h3>{project.title}</h3>
+          <span class={`status-badge ${statusColors[project.status] || 'bg-gray-500'}`}>
+            {statusLabels[project.status] || project.status}
+          </span>
+        </div>
+        <p>{project.description}</p>
+      </div>
+    ))}
+  </div>
+</section>
+
+<style>
+  .current-projects {
+    padding: 2rem 0;
+  }
+  .current-projects h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--text, #fff);
+  }
+  .projects-grid {
+    display: grid;
+    gap: 1rem;
+  }
+  .project-card {
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+    background: var(--surface, #1a1a2e);
+    border: 1px solid var(--border, #2a2a3e);
+    transition: border-color 0.2s;
+  }
+  .project-card:hover {
+    border-color: var(--accent, #a78bfa);
+  }
+  .project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  .project-header h3 {
+    font-weight: 600;
+    color: var(--text, #fff);
+    margin: 0;
+  }
+  .status-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    color: #000;
+    white-space: nowrap;
+  }
+  .project-card p {
+    color: var(--text-muted, #888);
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+</style>

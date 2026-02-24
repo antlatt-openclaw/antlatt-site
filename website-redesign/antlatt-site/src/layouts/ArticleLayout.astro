@@ -3,6 +3,11 @@ import BaseLayout from './BaseLayout.astro';
 import TableOfContents from '../components/TableOfContents.astro';
 import MobileTOC from '../components/MobileTOC.astro';
 import RelatedBuilds from '../components/RelatedBuilds.astro';
+import Newsletter from '../components/Newsletter.astro';
+import JsonLD from '../components/JsonLD.astro';
+import CopyCode from '../components/CopyCode.astro';
+import ReadingProgress from '../components/ReadingProgress.astro';
+import ShareButtons from '../components/ShareButtons.astro';
 import { getCollection } from 'astro:content';
 
 interface Props {
@@ -24,6 +29,20 @@ const { title, description, date, tags = [], image, slug, headings = [], reading
   description={description}
   image={image}
 >
+  <!-- Structured Data -->
+  {date && (
+    <JsonLD 
+      type="TechArticle" 
+      title={title} 
+      description={description || ''} 
+      date={new Date(date)} 
+      image={image} 
+    />
+  )}
+  
+  <!-- Reading Progress Indicator -->
+  <ReadingProgress />
+  
   <article class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div class="lg:grid lg:grid-cols-[1fr_250px] lg:gap-12">
       <!-- Main Content -->
@@ -75,6 +94,17 @@ const { title, description, date, tags = [], image, slug, headings = [], reading
         <div class="prose">
           <slot />
         </div>
+        
+        <!-- Copy Code Button Script -->
+        <CopyCode />
+        
+        <!-- Share Buttons -->
+        {slug && (
+          <ShareButtons title={title} url={`https://antlatt.com/builds/${slug}`} />
+        )}
+        
+        <!-- Newsletter Signup -->
+        <Newsletter />
         
         <!-- Related Builds -->
         {slug && tags.length > 0 && (

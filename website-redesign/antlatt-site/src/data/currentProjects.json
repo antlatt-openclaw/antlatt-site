@@ -1,0 +1,17 @@
+[
+  {
+    "title": "Website Redesign",
+    "status": "in-progress",
+    "description": "Migrating to Astro with improved performance and SEO"
+  },
+  {
+    "title": "True-Recall Memory System",
+    "status": "testing",
+    "description": "AI-powered persistent memory for conversations using vector databases"
+  },
+  {
+    "title": "Homelab Infrastructure",
+    "status": "ongoing",
+    "description": "Server rack build with Proxmox, Docker, and 10G networking"
+  }
+]

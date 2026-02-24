@@ -1,0 +1,73 @@
+---
+// Newsletter signup component
+---
+
+<section class="newsletter">
+  <h3>Stay Updated</h3>
+  <p>Get notified when I publish new builds and projects.</p>
+  <form action="https://buttondown.email/api/emails/embed-subscribe/antlatt" method="post" target="popupwindow" onsubmit="window.open('https://buttondown.email/antlatt', 'popupwindow')" class="newsletter-form">
+    <input type="email" name="email" placeholder="your@email.com" required />
+    <button type="submit">Subscribe</button>
+  </form>
+</section>
+
+<style>
+  .newsletter {
+    padding: 2rem;
+    border-radius: 1rem;
+    background: var(--surface, #1a1a2e);
+    border: 1px solid var(--border, #2a2a3e);
+    text-align: center;
+    margin: 2rem 0;
+  }
+  .newsletter h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text, #fff);
+  }
+  .newsletter p {
+    color: var(--text-muted, #888);
+    margin-bottom: 1.5rem;
+  }
+  .newsletter-form {
+    display: flex;
+    gap: 0.5rem;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  .newsletter-form input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border, #2a2a3e);
+    background: var(--bg, #0d0d1a);
+    color: var(--text, #fff);
+    font-size: 1rem;
+  }
+  .newsletter-form input::placeholder {
+    color: var(--text-muted, #888);
+  }
+  .newsletter-form input:focus {
+    outline: none;
+    border-color: var(--accent, #a78bfa);
+  }
+  .newsletter-form button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    border: none;
+    background: var(--accent, #a78bfa);
+    color: #000;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .newsletter-form button:hover {
+    opacity: 0.9;
+  }
+  @media (max-width: 480px) {
+    .newsletter-form {
+      flex-direction: column;
+    }
+  }
+</style>

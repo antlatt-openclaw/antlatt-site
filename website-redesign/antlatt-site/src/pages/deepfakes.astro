@@ -56,7 +56,8 @@ const videos = [
           <div class="aspect-video bg-surface-alt relative">
             <video 
               controls 
-              preload="metadata"
+              preload="none"
+              loading="lazy"
               poster={`/images/deepfakes/${video.file}.jpg`}
               class="w-full h-full object-contain"
             >
