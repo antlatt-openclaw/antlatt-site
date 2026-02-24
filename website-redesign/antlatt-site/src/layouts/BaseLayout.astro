@@ -35,6 +35,14 @@ const pageUrl = Astro.url.href.replace(/([^:]\/)\/+/g, '$1');
     <!-- RSS Feed -->
     <link rel="alternate" type="application/rss+xml" title="ANTLATT.COM RSS Feed" href="/rss.xml" />
     
+    <!-- Privacy-Respecting Analytics (Umami) -->
+    <!-- Uncomment and configure when ready to use:
+    <script async src="https:// analytics.yourdomain.com/script.js" data-website-id="your-website-id"></script>
+    -->
+    <!-- Or for self-hosted Plausible:
+    <script defer data-domain="antlatt.com" src="https://analytics.yourdomain.com/js/script.js"></script>
+    -->
+    
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
@@ -52,6 +60,9 @@ const pageUrl = Astro.url.href.replace(/([^:]\/)\/+/g, '$1');
     <title>{title}</title>
   </head>
   <body class="min-h-screen flex flex-col">
+    <!-- Skip to main content link for accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
     <nav class="sticky top-0 z-50 bg-bg/80 backdrop-blur-md border-b border-border">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
@@ -104,7 +115,7 @@ const pageUrl = Astro.url.href.replace(/([^:]\/)\/+/g, '$1');
       </div>
     </nav>
 
-    <main class="flex-1">
+    <main id="main-content" class="flex-1">
       <slot />
     </main>
 
@@ -120,7 +131,7 @@ const pageUrl = Astro.url.href.replace(/([^:]\/)\/+/g, '$1');
                 <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1Z"/>
               </svg>
             </a>
-            <a href="https://youtube.com" class="text-text-muted hover:text-accent transition-colors" aria-label="YouTube">
+            <a href="https://youtube.com/@antlatt" class="text-text-muted hover:text-accent transition-colors" aria-label="YouTube">
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
               </svg>

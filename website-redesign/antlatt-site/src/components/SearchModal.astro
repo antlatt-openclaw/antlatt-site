@@ -3,38 +3,41 @@
 // Uses pre-built search index for static hosting
 ---
 
-<div id="search-modal" class="fixed inset-0 z-[100] hidden" role="dialog" aria-modal="true" aria-labelledby="search-title">
+<div id="search-modal" class="fixed inset-0 z-[100] hidden" role="dialog" aria-modal="true" aria-labelledby="search-title" aria-describedby="search-description">
   <!-- Backdrop -->
-  <div class="fixed inset-0 bg-black/70 backdrop-blur-sm" data-search-close></div>
+  <div class="fixed inset-0 bg-black/70 backdrop-blur-sm" data-search-close aria-hidden="true"></div>
   
   <!-- Modal -->
-  <div class="fixed inset-0 flex items-start justify-center pt-[10vh] px-4">
+  <div class="fixed inset-0 flex items-start justify-center pt-[10vh] px-4" role="document">
     <div class="relative bg-surface border border-border rounded-xl shadow-2xl w-full max-w-2xl max-h-[70vh] overflow-hidden">
       <!-- Search Input -->
       <div class="flex items-center border-b border-border p-4">
-        <svg class="w-5 h-5 text-text-muted mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 text-text-muted mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
+        <label for="search-input" class="sr-only">Search builds and articles</label>
         <input 
           type="text" 
           id="search-input"
           placeholder="Search builds and articles..."
           class="flex-1 bg-transparent text-text focus:outline-none text-lg"
           autocomplete="off"
+          aria-label="Search builds and articles"
+          aria-describedby="search-description"
         />
-        <kbd class="hidden sm:inline-block px-2 py-1 text-xs text-text-muted bg-bg border border-border rounded">ESC</kbd>
+        <kbd class="hidden sm:inline-block px-2 py-1 text-xs text-text-muted bg-bg border border-border rounded" aria-label="Press Escape to close">ESC</kbd>
       </div>
       
       <!-- Results -->
-      <div id="search-results" class="overflow-y-auto max-h-[50vh] p-2">
-        <div class="text-center text-text-muted py-12">
+      <div id="search-results" class="overflow-y-auto max-h-[50vh] p-2" role="listbox" aria-label="Search results">
+        <div id="search-description" class="text-center text-text-muted py-12">
           <p>Start typing to search...</p>
           <p class="text-sm mt-2">Search across all builds and articles</p>
         </div>
       </div>
       
       <!-- Footer -->
-      <div class="border-t border-border p-3 flex items-center justify-between text-xs text-text-muted">
+      <div class="border-t border-border p-3 flex items-center justify-between text-xs text-text-muted" aria-hidden="true">
         <div class="flex items-center gap-4">
           <span><kbd class="px-1.5 py-0.5 bg-bg border border-border rounded">↵</kbd> Select</span>
           <span><kbd class="px-1.5 py-0.5 bg-bg border border-border rounded">↑↓</kbd> Navigate</span>

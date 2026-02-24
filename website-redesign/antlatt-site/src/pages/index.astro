@@ -10,7 +10,7 @@ const builds = [
     title: '10G 20TB Plex NAS',
     description: 'Build a high-performance media server with 10G networking and massive storage.',
     href: '/builds/nas-build',
-    image: '/images/builds/nas/nasthumb.jpg',
+    image: '/images/builds/nas/nasthumb.webp',
     tags: ['NAS', 'Plex', 'Storage'],
     date: '2024-03-15'
   },
@@ -18,7 +18,7 @@ const builds = [
     title: 'Ultimate Arcade',
     description: 'Mod an Arcade1Up machine to play any console game from Atari to PS3.',
     href: '/builds/arcade-build',
-    image: '/images/builds/arcade/arcadethumb.png',
+    image: '/images/builds/arcade/arcadethumb.webp',
     tags: ['Arcade', 'Retro', 'Gaming'],
     date: '2024-02-20'
   },
@@ -91,9 +91,12 @@ const builds = [
           </a>
         </div>
         <div class="relative">
-          <div class="aspect-square rounded-xl bg-gradient-to-br from-accent/20 to-code/10 flex items-center justify-center border border-border">
-            <span class="text-6xl">🛠️</span>
-          </div>
+          <img 
+            src="/images/about-hero-final.webp" 
+            alt="Anthony in the homelab" 
+            loading="lazy"
+            class="aspect-square rounded-xl object-cover border border-border shadow-lg"
+          />
         </div>
       </div>
     </div>

@@ -1,0 +1,87 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Card from '../../components/Card.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const builds = await getCollection('builds');
+  const allTags = [...new Set(builds.flatMap(b => b.data.tags || []))];
+  
+  // Helper function for reading time
+  const getReadingTime = (body: string | undefined): number => {
+    if (!body) return 0;
+    const wordsPerMinute = 225;
+    const plainText = body.replace(/[#*`\[\]]/g, '').trim();
+    const wordCount = plainText.split(/\s+/).filter(w => w.length > 0).length;
+    return Math.ceil(wordCount / wordsPerMinute);
+  };
+  
+  return allTags.map(tag => {
+    const tagBuilds = builds.filter(b => b.data.tags?.includes(tag)).sort(
+      (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+    );
+    
+    // Calculate reading times
+    const buildsWithReadTime = tagBuilds.map(build => ({
+      slug: build.slug,
+      data: build.data,
+      readingTime: getReadingTime(build.body)
+    }));
+    
+    return {
+      params: { tag: tag.toLowerCase().replace(/\s+/g, '-') },
+      props: { 
+        tag,
+        builds: buildsWithReadTime,
+        count: tagBuilds.length
+      },
+    };
+  });
+}
+
+const { tag, builds, count } = Astro.props;
+---
+
+<BaseLayout title={`${tag} | ANTLATT.COM`} description={`Builds and projects tagged with "${tag}"`}>
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="mb-8">
+      <a href="/builds" class="text-accent hover:text-accent-hover transition-colors text-sm mb-4 inline-block">
+        ← All Builds
+      </a>
+      <h1 class="text-4xl font-bold mb-2">
+        <span class="text-text-muted">#</span>{tag}
+      </h1>
+      <p class="text-text-muted">
+        {count} {count === 1 ? 'build' : 'builds'} tagged with "{tag}"
+      </p>
+    </div>
+
+    {builds.length > 0 ? (
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {builds.map((build) => (
+          <Card
+            title={build.data.title}
+            description={build.data.description}
+            href={`/builds/${build.slug}`}
+            image={build.data.image}
+            tags={build.data.tags}
+            date={build.data.date.toISOString()}
+            readingTime={build.readingTime}
+          />
+        ))}
+      </div>
+    ) : (
+      <p class="text-text-muted">No builds found with this tag.</p>
+    )}
+
+    <div class="mt-12 p-4 bg-surface border border-border rounded-lg">
+      <p class="text-text-muted text-sm">
+        📡 Subscribe to the 
+        <a href="/rss.xml" class="text-accent hover:text-accent-hover">
+          RSS feed
+        </a>
+        for all builds and updates.
+      </p>
+    </div>
+  </section>
+</BaseLayout>

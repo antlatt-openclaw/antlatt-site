@@ -4,13 +4,20 @@ import ArticleLayout from '../../layouts/ArticleLayout.astro';
 
 export async function getStaticPaths() {
   const builds = await getCollection('builds');
-  return builds.map((build) => ({
+  // Sort by date descending
+  const sortedBuilds = builds.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+  
+  return sortedBuilds.map((build, index) => ({
     params: { slug: build.slug },
-    props: { build },
+    props: { 
+      build,
+      prevBuild: index > 0 ? sortedBuilds[index - 1] : null,
+      nextBuild: index < sortedBuilds.length - 1 ? sortedBuilds[index + 1] : null,
+    },
   }));
 }
 
-const { build } = Astro.props;
+const { build, prevBuild, nextBuild } = Astro.props;
 
 // Render the content and get headings
 const { Content, headings } = await build.render();
@@ -32,6 +39,8 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
   slug={build.slug}
   headings={headings}
   readingTime={readingTime}
+  prevBuild={prevBuild ? { title: prevBuild.data.title, slug: prevBuild.slug } : null}
+  nextBuild={nextBuild ? { title: nextBuild.data.title, slug: nextBuild.slug } : null}
 >
   <Content />
 </ArticleLayout>

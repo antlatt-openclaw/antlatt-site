@@ -19,9 +19,11 @@ interface Props {
   slug?: string;
   headings?: { depth: number; slug: string; text: string }[];
   readingTime?: number;
+  prevBuild?: { title: string; slug: string } | null;
+  nextBuild?: { title: string; slug: string } | null;
 }
 
-const { title, description, date, tags = [], image, slug, headings = [], readingTime } = Astro.props;
+const { title, description, date, tags = [], image, slug, headings = [], readingTime, prevBuild, nextBuild } = Astro.props;
 ---
 
 <BaseLayout 
@@ -83,6 +85,10 @@ const { title, description, date, tags = [], image, slug, headings = [], reading
               src={image} 
               alt={title}
               class="w-full aspect-video object-cover"
+              fetchpriority="high"
+              decoding="async"
+              width="1200"
+              height="675"
             />
           </div>
         )}
@@ -110,6 +116,30 @@ const { title, description, date, tags = [], image, slug, headings = [], reading
         {slug && tags.length > 0 && (
           <RelatedBuilds currentSlug={slug} tags={tags} />
         )}
+        
+        <!-- Previous/Next Navigation -->
+        {(prevBuild || nextBuild) && (
+          <nav class="article-nav mt-12 pt-8 border-t border-border" aria-label="Article navigation">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {nextBuild ? (
+                <a href={`/builds/${nextBuild.slug}`} class="nav-card group">
+                  <span class="nav-label">← Previous</span>
+                  <span class="nav-title">{nextBuild.title}</span>
+                </a>
+              ) : (
+                <div class="hidden sm:block"></div>
+              )}
+              {prevBuild ? (
+                <a href={`/builds/${prevBuild.slug}`} class="nav-card group text-right">
+                  <span class="nav-label">Next →</span>
+                  <span class="nav-title">{prevBuild.title}</span>
+                </a>
+              ) : (
+                <div class="hidden sm:block"></div>
+              )}
+            </div>
+          </nav>
+        )}
       </div>
 
       <!-- Table of Contents Sidebar -->
@@ -119,3 +149,39 @@ const { title, description, date, tags = [], image, slug, headings = [], reading
     </div>
   </article>
 </BaseLayout>
+
+<style>
+  .nav-card {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 1.25rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+  }
+  
+  .nav-card:hover {
+    border-color: var(--color-accent);
+    background: var(--color-surface-hover);
+  }
+  
+  .nav-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+  }
+  
+  .nav-title {
+    font-weight: 600;
+    color: var(--color-text);
+    transition: color 0.2s ease;
+  }
+  
+  .nav-card:hover .nav-title {
+    color: var(--color-accent);
+  }
+</style>

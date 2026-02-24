@@ -17,5 +17,16 @@ export default defineConfig({
   output: 'static',
   build: {
     assets: 'assets'
+  },
+  image: {
+    // Enable responsive images with multiple formats
+    service: {
+      entrypoint: 'astro/assets/services/sharp',
+      config: {
+        limitInputPixels: false
+      }
+    },
+    // Define default breakpoints for responsive images
+    domains: []
   }
 });

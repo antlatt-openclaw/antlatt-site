@@ -1,36 +1,47 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-const videos = [
-  { title: 'Back to the Future', file: 'backtothefuture' },
-  { title: 'Jaws', file: 'jaws' },
-  { title: 'Indiana Jones', file: 'indiana_jones' },
-  { title: 'Say Hello', file: 'sayhello' },
-  { title: 'Tony Montana', file: 'tonymontana' },
-  { title: 'No Country for Old Men', file: 'nocountry' },
-  { title: 'Boomstick', file: 'boomstick' },
-  { title: 'Addimax', file: 'addimax' },
-  { title: 'Captain Coons', file: 'captain_coons' },
-  { title: 'Brad Bastards', file: 'brad_bastards' },
-  { title: 'Waltz', file: 'waltz' },
-  { title: 'Mad', file: 'mad' },
-  { title: 'Shopping', file: 'shopping' },
-  { title: 'Godfather', file: 'godf' },
-  { title: 'Godfather 1', file: 'god1' },
-  { title: 'Chess', file: 'chess' },
-  { title: 'NCFOM Coin', file: 'ncfom_coin' },
-  { title: 'Gladiator', file: 'gladiator' },
-  { title: 'Glad', file: 'glad' },
-  { title: 'Holiday', file: 'holiday' },
-  { title: 'Wick Pencil', file: 'wickpencil' },
-  { title: 'Courtesy', file: 'courtesy' },
-  { title: 'Suit Up', file: 'suit_up_3' },
-  { title: 'Rock', file: 'rock' },
-  { title: 'Fight Club', file: 'fight_club' },
-  { title: 'Slap', file: 'slap' },
-  { title: 'Taken', file: 'taken' },
-  { title: 'Crom', file: 'crom' },
+interface Video {
+  title: string;
+  file: string;
+  description?: string;
+  duration?: string;
+  category?: string;
+}
+
+const videos: Video[] = [
+  { title: 'Back to the Future', file: 'backtothefuture', description: 'Classic time-travel adventure face swap', category: 'Movies' },
+  { title: 'Jaws', file: 'jaws', description: 'The iconic shark thriller reimagined', category: 'Movies' },
+  { title: 'Indiana Jones', file: 'indiana_jones', description: 'Archaeologist adventurer face swap', category: 'Movies' },
+  { title: 'Say Hello', file: 'sayhello', description: 'Scarface iconic scene recreation', category: 'Movies' },
+  { title: 'Tony Montana', file: 'tonymontana', description: 'Scarface character deepfake', category: 'Movies' },
+  { title: 'No Country for Old Men', file: 'nocountry', description: 'Neo-western thriller scene', category: 'Movies' },
+  { title: 'Boomstick', file: 'boomstick', description: 'Army of Darkness classic moment', category: 'Movies' },
+  { title: 'Addimax', file: 'addimax', description: 'Custom deepfake experiment', category: 'Experiments' },
+  { title: 'Captain Coons', file: 'captain_coons', description: 'Character face swap experiment', category: 'Experiments' },
+  { title: 'Brad Bastards', file: 'brad_bastards', description: 'Inglourious Basterds scene', category: 'Movies' },
+  { title: 'Waltz', file: 'waltz', description: 'Christoph Waltz character deepfake', category: 'Movies' },
+  { title: 'Mad', file: 'mad', description: 'Post-apocalyptic scene recreation', category: 'Movies' },
+  { title: 'Shopping', file: 'shopping', description: 'Casual scene deepfake test', category: 'Experiments' },
+  { title: 'Godfather', file: 'godf', description: 'The Godfather iconic scene', category: 'Movies' },
+  { title: 'Godfather 1', file: 'god1', description: 'Another Godfather moment', category: 'Movies' },
+  { title: 'Chess', file: 'chess', description: 'Chess scene deepfake experiment', category: 'Experiments' },
+  { title: 'NCFOM Coin', file: 'ncfom_coin', description: 'The famous coin toss scene', category: 'Movies' },
+  { title: 'Gladiator', file: 'gladiator', description: 'Epic Roman arena scene', category: 'Movies' },
+  { title: 'Glad', file: 'glad', description: 'Gladiator character variation', category: 'Movies' },
+  { title: 'Holiday', file: 'holiday', description: 'Festive deepfake experiment', category: 'Experiments' },
+  { title: 'Wick Pencil', file: 'wickpencil', description: 'John Wick pencil scene', category: 'Movies' },
+  { title: 'Courtesy', file: 'courtesy', description: 'Character interaction deepfake', category: 'Experiments' },
+  { title: 'Suit Up', file: 'suit_up_3', description: 'Suiting up scene recreation', category: 'Movies' },
+  { title: 'Rock', file: 'rock', description: 'Action movie deepfake', category: 'Movies' },
+  { title: 'Fight Club', file: 'fight_club', description: 'Fight Club iconic scene', category: 'Movies' },
+  { title: 'Slap', file: 'slap', description: 'Dramatic slap scene deepfake', category: 'Experiments' },
+  { title: 'Taken', file: 'taken', description: 'Liam Neeson iconic moment', category: 'Movies' },
+  { title: 'Crom', file: 'crom', description: 'Conan the Barbarian scene', category: 'Movies' },
 ];
+
+// Get unique categories
+const categories = [...new Set(videos.map(v => v.category))].filter(Boolean);
 ---
 
 <BaseLayout title="DeepFakes | ANTLATT.COM" description="AI-powered deepfake videos - face swaps, movie recasts, and creative experiments.">
@@ -49,24 +60,47 @@ const videos = [
       </p>
     </div>
 
+    <!-- Category Filter -->
+    <div class="category-filters flex flex-wrap gap-2 mb-8">
+      <button class="category-btn active" data-category="all">All ({videos.length})</button>
+      {categories.map(cat => (
+        <button class="category-btn" data-category={cat}>
+          {cat} ({videos.filter(v => v.category === cat).length})
+        </button>
+      ))}
+    </div>
+
     <!-- Video Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="video-grid">
       {videos.map((video) => (
-        <div class="card overflow-hidden group">
+        <div class="video-card card overflow-hidden group" data-category={video.category || 'Experiments'}>
           <div class="aspect-video bg-surface-alt relative">
             <video 
               controls 
               preload="none"
-              loading="lazy"
               poster={`/images/deepfakes/${video.file}.jpg`}
               class="w-full h-full object-contain"
+              aria-label={video.title}
             >
               <source src={`/videos/${video.file}.mp4`} type="video/mp4" />
               Your browser does not support the video tag.
             </video>
+            {video.duration && (
+              <span class="absolute bottom-2 right-2 px-2 py-0.5 bg-black/80 text-white text-xs rounded">
+                {video.duration}
+              </span>
+            )}
           </div>
           <div class="p-4">
-            <h3 class="font-semibold text-text group-hover:text-accent transition-colors">{video.title}</h3>
+            <div class="flex items-start justify-between gap-2 mb-1">
+              <h3 class="font-semibold text-text group-hover:text-accent transition-colors">{video.title}</h3>
+              {video.category && (
+                <span class="tag shrink-0">{video.category}</span>
+              )}
+            </div>
+            {video.description && (
+              <p class="text-text-muted text-sm">{video.description}</p>
+            )}
           </div>
         </div>
       ))}
@@ -84,3 +118,58 @@ const videos = [
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  .category-filters {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border, #2a2a3e);
+    margin-bottom: 2rem;
+  }
+  .category-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid var(--border, #2a2a3e);
+    background: transparent;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .category-btn:hover {
+    border-color: var(--accent, #6366f1);
+    color: var(--text, #fff);
+  }
+  .category-btn.active {
+    background: var(--accent, #6366f1);
+    border-color: var(--accent, #6366f1);
+    color: #fff;
+  }
+  .video-card.hidden {
+    display: none;
+  }
+</style>
+
+<script>
+  const categoryButtons = document.querySelectorAll('.category-btn');
+  const videoCards = document.querySelectorAll('.video-card');
+
+  categoryButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Update active state
+      categoryButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const selectedCategory = btn.getAttribute('data-category');
+      
+      videoCards.forEach(card => {
+        const cardCategory = card.getAttribute('data-category') || 'Experiments';
+        if (selectedCategory === 'all' || cardCategory === selectedCategory) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    });
+  });
+</script>

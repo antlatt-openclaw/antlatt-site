@@ -36,11 +36,15 @@ async function checkService(name: string, description: string, url: string): Pro
   }
 }
 
-// Check all services using localhost (proxied) or internal addresses
+// Check services via environment-configured endpoints (not exposed in source)
+const QDRANT_URL = import.meta.env.QDRANT_URL || 'http://localhost:6333/collections';
+const REDIS_URL = import.meta.env.REDIS_URL || 'http://localhost:6379';
+const OLLAMA_URL = import.meta.env.OLLAMA_URL || 'http://localhost:11434/api/tags';
+
 const services = await Promise.all([
-  checkService('Qdrant', 'Vector Database', 'http://192.168.1.202:6333/collections'),
-  checkService('Redis', 'Cache & Memory Buffer', 'http://192.168.1.206:6379'),
-  checkService('Ollama', 'LLM Inference', 'http://192.168.1.207:11434/api/tags'),
+  checkService('Qdrant', 'Vector Database', QDRANT_URL),
+  checkService('Redis', 'Cache & Memory Buffer', REDIS_URL),
+  checkService('Ollama', 'LLM Inference', OLLAMA_URL),
   checkService('Website', 'This Site', 'http://localhost:8080/'),
 ]);
 
@@ -76,8 +80,9 @@ const overallStatus = onlineCount === services.length ? 'all-systems-go' :
         <div class="text-text-muted">Services Online</div>
       </div>
       <div class="card p-6">
-        <div class="text-4xl font-bold text-accent mb-2">99.9%</div>
+        <div class="text-4xl font-bold text-accent mb-2" id="uptime-display">--%</div>
         <div class="text-text-muted">30-Day Uptime</div>
+        <div class="text-xs text-text-muted mt-1" id="last-check"></div>
       </div>
       <div class="card p-6">
         <div class="text-4xl font-bold text-text mb-2">Self-Hosted</div>
@@ -191,3 +196,49 @@ const overallStatus = onlineCount === services.length ? 'all-systems-go' :
     </div>
   </section>
 </BaseLayout>
+
+<script>
+  // Fetch uptime data from API
+  async function loadUptimeData() {
+    try {
+      const response = await fetch('/api/uptime-data.json');
+      if (!response.ok) return;
+      
+      const data = await response.json();
+      
+      // Update uptime display
+      const uptimeEl = document.getElementById('uptime-display');
+      if (uptimeEl && data.stats) {
+        const percent = data.stats.uptimePercent || 0;
+        uptimeEl.textContent = `${percent}%`;
+        
+        // Color based on percentage
+        if (percent >= 99) {
+          uptimeEl.classList.add('text-green-400');
+          uptimeEl.classList.remove('text-accent', 'text-yellow-400', 'text-red-400');
+        } else if (percent >= 95) {
+          uptimeEl.classList.add('text-yellow-400');
+          uptimeEl.classList.remove('text-accent', 'text-green-400', 'text-red-400');
+        } else {
+          uptimeEl.classList.add('text-red-400');
+          uptimeEl.classList.remove('text-accent', 'text-green-400', 'text-yellow-400');
+        }
+      }
+      
+      // Update last check time
+      const lastCheckEl = document.getElementById('last-check');
+      if (lastCheckEl && data.timestamp) {
+        const date = new Date(data.timestamp);
+        lastCheckEl.textContent = `Last check: ${date.toLocaleTimeString()}`;
+      }
+    } catch (error) {
+      console.error('Failed to load uptime data:', error);
+    }
+  }
+  
+  // Load on page load
+  loadUptimeData();
+  
+  // Refresh every 60 seconds
+  setInterval(loadUptimeData, 60000);
+</script>

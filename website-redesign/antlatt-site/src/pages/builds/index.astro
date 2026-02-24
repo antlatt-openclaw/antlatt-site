@@ -6,6 +6,21 @@ import { getCollection } from 'astro:content';
 const builds = await getCollection('builds');
 const sortedBuilds = builds.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 const allTags = [...new Set(builds.flatMap(b => b.data.tags || []))].sort();
+
+// Helper to calculate reading time
+function calculateReadingTime(body: string | undefined): number {
+  if (!body) return 0;
+  const wordsPerMinute = 225;
+  const plainText = body.replace(/[#*`\[\]]/g, '').trim();
+  const wordCount = plainText.split(/\s+/).filter(w => w.length > 0).length;
+  return Math.ceil(wordCount / wordsPerMinute);
+}
+
+// Pre-calculate reading times for all builds
+const buildsWithReadTime = sortedBuilds.map(build => ({
+  ...build,
+  readingTime: calculateReadingTime(build.body)
+}));
 ---
 
 <BaseLayout title="Builds | ANTLATT.COM">
@@ -24,7 +39,7 @@ const allTags = [...new Set(builds.flatMap(b => b.data.tags || []))].sort();
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="builds-grid">
-      {sortedBuilds.map((build) => (
+      {buildsWithReadTime.map((build) => (
         <div class="build-card" data-tags={(build.data.tags || []).join(',').toLowerCase()}>
           <Card
             title={build.data.title}
@@ -33,6 +48,7 @@ const allTags = [...new Set(builds.flatMap(b => b.data.tags || []))].sort();
             image={build.data.image}
             tags={build.data.tags}
             date={build.data.date.toISOString()}
+            readingTime={build.readingTime}
           />
         </div>
       ))}
