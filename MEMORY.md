@@ -60,6 +60,66 @@ Group ID: `-1003850499454`
 | main | General assistant (this agent) |
 | hallie | Coding specialist, background execution, spawns subagents |
 
+## Website Redesign (antlatt.com)
+
+### Project Location
+- **Path**: `/root/.openclaw/antlatt-workspace/website-redesign/antlatt-site/`
+- **Original site**: `/root/www/` (old HTML files, not replaced yet)
+- **Framework**: Astro + Tailwind CSS v4
+
+### Deployment
+- **Self-hosted**: Docker container `antlatt-site` on port 8080
+- **Videos**: Served from same container at `/videos/`
+- **Domain**: antlatt.com (DNS → Nginx Proxy Manager → 192.168.1.205:8080)
+- **Vercel backup**: https://antlatt-site.vercel.app (project ID: `prj_kS4JLlq80IDofWp1CraG1rzKfAY7`)
+
+### Content Migrated
+| Original | New | Status |
+|----------|-----|--------|
+| nasbuild.html | /builds/nas-build | ✅ |
+| arcadebuild.html | /builds/arcade-build | ✅ |
+| serverbuild.html | /builds/server-rack | ✅ |
+| pihole.html | /builds/pihole | ✅ |
+| mikrotik + nanobeam + us24 | /builds/network-gear | ✅ Consolidated |
+| deepfakes.html | /deepfakes | ✅ 30 videos |
+| contactme.html | /contact | ✅ |
+
+### Features Added
+- Client-side search (/api/search-index.json)
+- Live Lab status page (/lab)
+- RSS feed (/rss.xml)
+- Open Graph images (static + dynamic)
+- Table of Contents on articles
+- Callout boxes (lesson, tip, warning, info)
+- Parts tables with pricing
+- Build cost calculator (interactive)
+- Related builds section
+- Video embeds with thumbnails
+- Reading time estimates
+
+### Video Server
+- **Location**: `/root/www/deepfakes_video/vid_outputs/` (30 videos, ~11GB)
+- **Thumbnails**: `/public/images/deepfakes/` (generated via ffmpeg)
+- **Container**: `antlatt-site` serves both site and videos
+
+### Key Commands
+```bash
+# Rebuild site
+cd /root/.openclaw/antlatt-workspace/website-redesign/antlatt-site
+npm run build
+
+# Reload nginx
+docker exec antlatt-site nginx -s reload
+
+# View logs
+docker logs antlatt-site
+```
+
+### Security Notes
+- Do NOT expose internal IP addresses (192.168.x.x) on public pages
+- Lab page uses generic service names, no IPs
+- Search uses client-side index, no backend API needed
+
 ---
 
 *Update this file with significant learnings and preferences over time.*
