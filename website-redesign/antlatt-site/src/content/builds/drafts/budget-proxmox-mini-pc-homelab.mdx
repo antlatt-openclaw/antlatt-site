@@ -11,9 +11,11 @@ draft: true
 
 ## Introduction
 
-Building a homelab doesn't have to break the bank. Mini PCs have become incredibly popular for homelab enthusiasts who want to run virtualization platforms like Proxmox VE without the noise, heat, and power consumption of traditional rack servers. In this guide, we'll walk through setting up a budget-friendly Proxmox homelab using readily available mini PCs.
+Building a homelab doesn't have to break the bank. Mini PCs have become incredibly popular for homelab enthusiasts who want to run virtualization platforms like Proxmox VE without the noise, heat, and power consumption of traditional rack servers. In this guide, we'll walk through setting up a budget-friendly Proxmox homelab using readily available mini PCs. 
 
-Mini PCs offer several advantages for homelab builders: they're compact, energy-efficient, surprisingly powerful, and often available at faction of the cost of enterprise hardware. Whether you want to run Docker containers, Home Assistant, Plex, or experiment with Kubernetes, a mini PC Proxmox cluster can handle it all.
+Mini PCs offer several advantages for homelab builders: they're compact, energy-efficient, surprisingly powerful, and often available at a fraction of the cost of enterprise hardware. Whether you want to run Docker containers, Home Assistant, Plex, or experiment with Kubernetes, a mini PC Proxmox cluster can handle it all.
+
+ 
 
 ## Parts Needed
 
@@ -23,14 +25,14 @@ Mini PCs offer several advantages for homelab builders: they're compact, energy-
 | Mini PC | Beelink S12 Pro (Intel N100) | $180 | https://amzn.to/example |
 | RAM Upgrade | 16GB DDR4 SODIMM | $35 | https://amzn.to/example |
 | NVMe Storage | 500GB NVMe SSD | $40 | https://amzn.to/example |
-| USB Flash Drive | 32GB USB 3.0 (for installer) | $10 | https://amzn.to/example |
+| USB Flash Drive | 32GB USB 3.0 (for install) | $10 | https://amzn.to/example |
 | Ethernet Cable | Cat6 3ft | $8 | https://amzn.to/example |
-| Optional: Second Mini PC | Beelink EQ12 | $180 | https://amzn.to/example |
+ 
 </PartsTable>
 
 ## Step 1: Choose Your Mini PC Hardware
 
-The heart of your Proxmox homelab is the mini PC itself. For budget builds, Intel N100 or N5105 processors offer excellent value with 4 cores and low power consumption. The Beelink S12 Pro and EQ12 are popular choices in the homelab community.
+The heart of your Proxmox homelab is the mini PC itself. For budget builds, Intel N100 or N5105 processors offer excellent value with 4 cores and low power consumption. The Beelink S12 Pro and EQ12 are popular choices in the homelab community. 
 
 **What to look for:**
 - Intel N100/N5105 or better CPU (avoid Atom/Celeron if possible)
@@ -38,14 +40,14 @@ The heart of your Proxmox homelab is the mini PC itself. For budget builds, Inte
 - NVMe storage slot (SATA SSD works but NVMe is faster)
 - At least one 2.5GbE Ethernet port
 - VT-x and VT-d support for virtualization
-
-**Popular Mini PC Options:**
+ 
+**Popular Mini PC Options:** 
 - **Budget:** Beelink S12 Pro ($180-200) - Intel N100, great value
 - **Mid-range:** ASUS NUC 14 Pro ($350+) - More powerful, better build
 - **Storage focus:** Aoostar WTR Pro ($250+) - Has dual 2.5" drive bays
 
-<Callout type="tip">
-Before buying, check if the mini PC has an empty NVMe slot or if you need to replace the existing drive. Some models make storage upgrades easier than others.
+<Callout type="tip" title="Pro Tip">
+Keep costs down by reusing existing drives when possible.
 </Callout>
 
 ## Step 2: Download and Create Proxmox Installer
@@ -56,18 +58,9 @@ Proxmox VE is a free, open-source virtualization platform based on Debian Linux.
 2. Use Ventoy or Rufus to create a bootable USB drive
 3. Insert the USB drive into your mini PC and boot from it
 
-**Creating the bootable USB with Ventoy:**
-```bash
-# Install Ventoy on your USB drive
-sudo ventoy -i /dev/sdX
-
-# Copy the Proxmox ISO directly to the Ventoy partition
-cp proxmox-ve_8.1.iso /media/your-usb/
-```
-
 ## Step 3: Install Proxmox VE
 
-Installing Proxmox is straightforward. Connect a monitor and keyboard to your mini PC for the initial setup.
+Installing Proxmox is straightforward. Connect a monitor and keyboard to your mini PC for the initial setup. 
 
 1. Boot from the USB drive (usually F7 or F12 for boot menu)
 2. Select "Install Proxmox VE" from the boot menu
@@ -90,31 +83,31 @@ Once Proxmox is running, there are essential configurations to perform:
 
 **Update the system:**
 ```bash
-apt update && apt dist-upgrade -y
+apt update && apt dist-upgrade -y 
 ```
 
-**Remove the enterprise repository (for free version):**
+**Remove the enterprise repository (for free version using no-subscription repo):**
 ```bash
 rm /etc/apt/sources.list.d/pve-enterprise.list
-echo "deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription" > /etc/apt/sources.list.d/pve-no-subscription.list
+echo "deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription" > /etc/apt/sources.list.d/pve-no-subscription.list 
 ```
 
 **Install useful tools:**
 ```bash
-apt install -y iftop htop ncdu
+apt install -y iftop htop ncdu 
 ```
 
-## Step 5: Create Your First Virtual Machine
+## Step 4: Create Your First Virtual Machine
 
 Now comes the fun part - running your first VM!
 
 1. Download an ISO (Ubuntu Server, Debian, or whatever you prefer)
-2. Upload it to Proxmox via the web interface (select your node > local-lvm > ISO Images)
+2. Upload it to Proxmox via the web interface (select your node > local-lvm> ISO Images)
 3. Click "Create VM" in the top right
 4. Configure CPU, RAM, and storage allocation
 5. Start the VM and begin your homelab journey!
 
-**Recommended starter VMs:**
+**Recommended starter VMs:** 
 - **Ubuntu Server:** For Docker containers and self-hosted apps
 - **Home Assistant OS:** For smart home automation
 - **Pi-hole:** For network-wide ad blocking
@@ -124,6 +117,6 @@ Now comes the fun part - running your first VM!
 
 Building a Proxmox homelab with mini PCs is an excellent way to learn virtualization, self-host services, and gain valuable IT skills without spending thousands on enterprise hardware. A $200 mini PC running Proxmox can handle dozens of containers, several VMs, and teach you the fundamentals of virtualization that scale to enterprise environments.
 
-Start small with a single node, then consider expanding to a multi-node cluster for high availability. The skills you learn here - storage management, networking, container orchestration - will serve you well in any IT career.
+Start small with a single node, then consider expanding to a multi-node cluster for high availability. The skills you learn here - storage management, networking, container orchestration - will serve you well in any IT career. 
 
 Ready to start your homelab journey? Grab a mini PC and dive in!
