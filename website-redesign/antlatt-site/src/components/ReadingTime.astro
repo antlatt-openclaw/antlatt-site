@@ -1,0 +1,18 @@
+---
+// Reading Time component - calculates estimated reading time
+interface Props {
+  content: string;
+}
+
+const { content } = Astro.props;
+
+// Average reading speed: 200-250 words per minute
+const wordsPerMinute = 225;
+const plainText = content.replace(/<[^>]*>/g, '').trim();
+const wordCount = plainText.split(/\s+/).filter(w => w.length > 0).length;
+const readingTime = Math.ceil(wordCount / wordsPerMinute);
+---
+
+<span class="reading-time text-text-muted text-sm">
+  {readingTime} min read
+</span>

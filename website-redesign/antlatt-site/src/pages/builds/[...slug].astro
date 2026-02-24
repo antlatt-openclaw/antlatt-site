@@ -1,0 +1,37 @@
+---
+import { getCollection } from 'astro:content';
+import ArticleLayout from '../../layouts/ArticleLayout.astro';
+
+export async function getStaticPaths() {
+  const builds = await getCollection('builds');
+  return builds.map((build) => ({
+    params: { slug: build.slug },
+    props: { build },
+  }));
+}
+
+const { build } = Astro.props;
+
+// Render the content and get headings
+const { Content, headings } = await build.render();
+
+// Calculate reading time from the raw content
+const rawContent = build.body || '';
+const wordsPerMinute = 225;
+const plainText = rawContent.replace(/[#*`\[\]]/g, '').trim();
+const wordCount = plainText.split(/\s+/).filter(w => w.length > 0).length;
+const readingTime = Math.ceil(wordCount / wordsPerMinute);
+---
+
+<ArticleLayout
+  title={build.data.title}
+  description={build.data.description}
+  date={build.data.date.toISOString()}
+  tags={build.data.tags}
+  image={build.data.image}
+  slug={build.slug}
+  headings={headings}
+  readingTime={readingTime}
+>
+  <Content />
+</ArticleLayout>

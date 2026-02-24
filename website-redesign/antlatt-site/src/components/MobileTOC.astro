@@ -1,0 +1,40 @@
+---
+// Mobile Table of Contents - Collapsible on mobile
+interface Props {
+  headings?: { depth: number; slug: string; text: string }[];
+}
+
+const { headings = [] } = Astro.props;
+
+// Only show h2 and h3 headings
+const tocItems = headings.filter(h => h.depth >= 2 && h.depth <= 3);
+---
+
+{tocItems.length > 2 && (
+  <div class="mobile-toc lg:hidden my-6">
+    <details class="bg-surface border border-border rounded-lg">
+      <summary class="px-4 py-3 cursor-pointer font-semibold flex items-center justify-between">
+        <span>Table of Contents</span>
+        <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </summary>
+      <ul class="px-4 pb-4 space-y-2 border-t border-border pt-3 mt-2">
+        {tocItems.map((heading) => (
+          <li>
+            <a
+              href={`#${heading.slug}`}
+              class={`block py-1 text-sm transition-colors ${
+                heading.depth === 2 
+                  ? 'text-text-muted hover:text-text' 
+                  : 'text-text-muted/70 hover:text-text pl-4'
+              }`}
+            >
+              {heading.text}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </details>
+  </div>
+)}

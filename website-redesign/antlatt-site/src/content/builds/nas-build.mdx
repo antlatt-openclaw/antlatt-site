@@ -1,0 +1,205 @@
+---
+title: '10G 20TB Plex NAS Build'
+description: 'Build a high-performance media server with 10G networking, massive storage, and the flexibility of Unraid. Stream anything, anywhere, to anyone.'
+date: 2024-03-15
+image: '/images/builds/nas/nasthumb.jpg'
+tags: ['NAS', 'Plex', 'Storage', 'Unraid', 'Homelab']
+featured: true
+parts:
+  - { name: 'CPU', model: 'Intel i5-12400', price: 180 }
+  - { name: 'Motherboard', model: 'ASRock H670 Pro RS', price: 150 }
+  - { name: 'RAM', model: '32GB DDR4-3200', price: 100 }
+  - { name: 'Boot Drive', model: '250GB NVMe SSD', price: 30 }
+  - { name: 'Cache Drive', model: '1TB NVMe SSD', price: 80 }
+  - { name: 'Storage (4x)', model: '8TB Seagate IronWolf', price: 600 }
+  - { name: '10G NIC', model: 'Intel X540-T1 (used)', price: 80 }
+  - { name: 'Case', model: 'Fractal Design Node 804', price: 180 }
+  - { name: 'PSU', model: 'Corsair RM650', price: 90 }
+---
+
+import Callout from '../../components/Callout.astro';
+import VideoEmbed from '../../components/VideoEmbed.astro';
+import PartsTable from '../../components/PartsTable.astro';
+import BuildCostCalculator from '../../components/BuildCostCalculator.astro';
+
+## The Problem
+
+You know the feeling. Scrolling through Netflix, Hulu, Disney+, Prime Video — endless content, nothing to watch. Five streaming services, three subscriptions you forgot to cancel, and somehow you're still paying for rentals on movies you already own on DVD somewhere in a box.
+
+I wanted something better. A media library where **I** choose what's available. Where 4K HDR doesn't buffer. Where my friends and family can watch my collection from their own homes.
+
+So I built this.
+
+## What We're Building
+
+A media server that:
+- Stores **20TB+** of content
+- Streams **10G** networking for local transfers
+- Runs **Plex**, *Jellyfin*, and other services
+- Runs on **Unraid** for flexibility
+- Streams to **remote users** reliably
+
+<VideoEmbed 
+  src="/videos/nas-build-walkthrough.mp4" 
+  title="NAS Build Walkthrough"
+  poster="/images/builds/nas/nasthumb.jpg"
+  description="Full build walkthrough from unboxing to first boot"
+/>
+
+## The Hardware
+
+<PartsTable 
+  parts={[
+    { name: 'CPU', model: 'Intel i5-12400', price: 180 },
+    { name: 'Motherboard', model: 'ASRock H670 Pro RS', price: 150 },
+    { name: 'RAM', model: '32GB DDR4-3200', price: 100 },
+    { name: 'Boot Drive', model: '250GB NVMe SSD', price: 30 },
+    { name: 'Cache Drive', model: '1TB NVMe SSD', price: 80 },
+    { name: 'Storage (4x)', model: '8TB Seagate IronWolf', price: 600 },
+    { name: '10G NIC', model: 'Intel X540-T1 (used)', price: 80 },
+    { name: 'Case', model: 'Fractal Design Node 804', price: 180 },
+    { name: 'PSU', model: 'Corsair RM650', price: 90 }
+  ]}
+/>
+
+<BuildCostCalculator 
+  title="Customize Your Build"
+  parts={[
+    { name: 'CPU', basePrice: 180, options: [
+      { label: 'i5-12400 (Recommended)', value: 'i5-12400', price: 180 },
+      { label: 'i3-12100 (Budget)', value: 'i3-12100', price: 120 },
+      { label: 'i7-12700 (High Performance)', value: 'i7-12700', price: 300 }
+    ]},
+    { name: 'RAM', basePrice: 100, options: [
+      { label: '32GB (Recommended)', value: '32gb', price: 100 },
+      { label: '16GB (Budget)', value: '16gb', price: 60 },
+      { label: '64GB (Heavy Dockers)', value: '64gb', price: 200 }
+    ]},
+    { name: 'Storage Drives', basePrice: 600, options: [
+      { label: '4x 8TB (Recommended)', value: '4x8tb', price: 600 },
+      { label: '4x 4TB (Budget)', value: '4x4tb', price: 320 },
+      { label: '8x 8TB (Maximum)', value: '8x8tb', price: 1200 }
+    ]},
+    { name: 'Networking', basePrice: 80, options: [
+      { label: '10G Intel X540 (Recommended)', value: '10g', price: 80 },
+      { label: '1G Onboard (Budget)', value: '1g', price: 0 },
+      { label: '2.5G NIC', value: '2.5g', price: 30 }
+    ]},
+    { name: 'Motherboard', basePrice: 150 },
+    { name: 'Boot Drive', basePrice: 30 },
+    { name: 'Cache Drive', basePrice: 80 },
+    { name: 'Case', basePrice: 180 },
+    { name: 'PSU', basePrice: 90 }
+  ]}
+/>
+
+### Why These Choices?
+
+<Callout type="tip" title="QuickSync Champion">
+The Intel i5-12400 has excellent QuickSync support for hardware transcoding. Plex can transcode multiple 4K streams without breaking a sweat, and power consumption is reasonable at idle.
+</Callout>
+
+<Callout type="info" title="Why Unraid?">
+I went with Unraid over TrueNAS because you can mix and match drive sizes, run Docker containers easily, set up VPN for remote access with one click, and the community support is incredible.
+</Callout>
+
+<Callout type="tip" title="Pro Tip: Enterprise Gear">
+The Intel X540-T1 is a tank. Used enterprise gear on eBay is the way to go here. New 10G gear is expensive; used enterprise gear is practically free.
+</Callout>
+
+## The Build Process
+
+### Step 1: Case Setup
+
+The Node 804 is perfect for NAS builds. It's cube-shaped with separate compartments for the motherboard and drives. The drive side holds 8x 3.5" drives with room to spare.
+
+### Step 2: Storage Configuration
+
+With Unraid, we don't need RAID. Instead:
+- 1x parity drive (8TB)
+- 3x data drives (24TB total)
+- 1x cache pool (1TB NVMe)
+
+<Callout type="warning" title="Parity is Not Backup">
+If a drive dies, parity protects you. But if multiple drives fail or you delete something by accident, you're out of luck. Always have off-site backups for important data.
+</Callout>
+
+### Step 3: Networking
+
+The 10G NIC connects directly to my Mikrotik CRS305 switch. Local transfers hit 500+ MB/s — an entire 4K movie in seconds.
+
+## Performance
+
+### Local Performance
+
+| Metric | Result |
+|--------|--------|
+| Sequential Read | 1.2 GB/s |
+| Sequential Write | 800 MB/s |
+| Plex Direct Play | 4K HDR, no issues |
+| Plex Transcode | 5+ simultaneous streams |
+
+### Remote Performance
+
+Through Tailscale VPN, remote users get 20-40 Mbps streams. Enough for 1080p everywhere, 4K on good connections.
+
+## Services Running
+
+The beauty of Unraid is Docker support. Currently running:
+
+- **Plex** — Main media server
+- **Jellyfin** — Backup/emergency streaming
+- **Sonarr/Radarr** — Media management
+- **Prowlarr** — Indexer aggregation
+- **Tailscale** — VPN for remote access
+- **Home Assistant** — Smart home hub
+- **Various other containers** — Backup, monitoring, etc.
+
+## Power Consumption
+
+At idle: **~45W**
+Under load: **~120W**
+
+For a server running 24/7, that's reasonable. The i5-12400 is surprisingly efficient at idle.
+
+## Lessons Learned
+
+<Callout type="lesson">
+Buy more drives than you think you need. I'm already at 70% capacity and considering expansion. Storage has a way of filling up faster than you expect.
+</Callout>
+
+<Callout type="lesson">
+Cache drives matter. The NVMe cache makes a huge difference for Docker performance and downloads. Don't skip it.
+</Callout>
+
+<Callout type="lesson">
+Don't skimp on the NIC. The Intel X540 might be old, but it's rock solid. Cheap consumer 10G gear is often unreliable.
+</Callout>
+
+<Callout type="lesson">
+Test your backups. I thought I had a backup strategy until I actually tried to restore. Now I test monthly. A backup you haven't tested isn't a backup.
+</Callout>
+
+## Future Upgrades
+
+- **More storage** — The Node 804 has room for 8 drives. I'm using 4.
+- **GPU for transcoding** — If I ever need more simultaneous 4K transcodes
+- **RAM upgrade** — 32GB is fine for now, but Unraid can use more for cache
+
+<VideoEmbed 
+  src="/videos/nas-quick-tour.mp4" 
+  title="Quick Tour"
+  description="A quick look at the finished build and running services"
+/>
+
+## Conclusion
+
+This NAS has been running for two years without major issues. It streams to my TV, my phone, my friends' houses. It backs up my data. It runs my smart home.
+
+<Callout type="tip" title="Ready to Build?">
+If you're tired of juggling streaming subscriptions and want full control over your media, build one. The upfront cost is real, but the freedom is worth it.
+</Callout>
+
+---
+
+*Questions? Hit me up on the [contact page](/contact) or check out the [YouTube video](https://youtube.com) for the full build walkthrough.*

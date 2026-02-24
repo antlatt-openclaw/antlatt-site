@@ -1,0 +1,68 @@
+---
+// Related Builds - Tag-based related articles component
+import { getCollection } from 'astro:content';
+
+interface Props {
+  currentSlug: string;
+  tags: string[];
+  limit?: number;
+}
+
+const { currentSlug, tags = [], limit = 3 } = Astro.props;
+
+// Get all builds and find related ones
+const allBuilds = await getCollection('builds');
+
+// Calculate relevance score based on tag overlap
+const relatedBuilds = allBuilds
+  .filter(build => build.slug !== currentSlug)
+  .map(build => {
+    const buildTags = build.data.tags || [];
+    const matchingTags = tags.filter(tag => buildTags.includes(tag));
+    return {
+      build,
+      score: matchingTags.length,
+      matchingTags
+    };
+  })
+  .filter(item => item.score > 0)
+  .sort((a, b) => b.score - a.score)
+  .slice(0, limit);
+---
+
+{relatedBuilds.length > 0 && (
+  <section class="related-builds my-12 pt-8 border-t border-border">
+    <h3 class="text-2xl font-bold mb-6">If you liked this, check out...</h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {relatedBuilds.map(({ build, matchingTags }) => (
+        <a href={`/builds/${build.slug}`} class="card group p-4">
+          {build.data.image && (
+            <div class="aspect-video rounded-lg overflow-hidden mb-4 border border-border">
+              <img 
+                src={build.data.image} 
+                alt={build.data.title}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+          )}
+          <h4 class="font-semibold text-text group-hover:text-accent transition-colors mb-2">
+            {build.data.title}
+          </h4>
+          <p class="text-sm text-text-muted line-clamp-2 mb-3">
+            {build.data.description}
+          </p>
+          {matchingTags.length > 0 && (
+            <div class="flex flex-wrap gap-1">
+              {matchingTags.slice(0, 3).map(tag => (
+                <span class="text-xs px-2 py-0.5 bg-accent/20 text-accent rounded-full">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </a>
+      ))}
+    </div>
+  </section>
+)}

@@ -1,0 +1,25 @@
+---
+interface Props {
+  title: string;
+  subtitle?: string;
+}
+
+const { title, subtitle } = Astro.props;
+---
+
+<section class="relative overflow-hidden border-b border-border">
+  <!-- Gradient background -->
+  <div class="absolute inset-0 bg-gradient-to-br from-accent/10 via-bg to-code/5 pointer-events-none"></div>
+  
+  <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32">
+    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4">
+      <span class="gradient-text">{title}</span>
+    </h1>
+    {subtitle && (
+      <p class="text-xl sm:text-2xl text-text-muted max-w-2xl">
+        {subtitle}
+      </p>
+    )}
+    <slot />
+  </div>
+</section>

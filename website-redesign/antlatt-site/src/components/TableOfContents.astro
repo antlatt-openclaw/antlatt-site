@@ -1,0 +1,72 @@
+---
+// Table of Contents component for long articles
+interface Props {
+  headings?: { depth: number; slug: string; text: string }[];
+}
+
+const { headings = [] } = Astro.props;
+
+// Only show h2 and h3 headings
+const tocItems = headings.filter(h => h.depth >= 2 && h.depth <= 3);
+---
+
+{tocItems.length > 2 && (
+  <nav class="toc-container hidden lg:block" aria-label="Table of Contents">
+    <div class="sticky top-24">
+      <h4 class="text-sm font-semibold text-text-muted uppercase tracking-wider mb-4">
+        On This Page
+      </h4>
+      <ul class="space-y-2 border-l border-border">
+        {tocItems.map((heading) => (
+          <li>
+            <a
+              href={`#${heading.slug}`}
+              class={`toc-link block py-1 pl-4 text-sm transition-colors ${
+                heading.depth === 2 
+                  ? 'text-text-muted hover:text-text' 
+                  : 'text-text-muted/70 hover:text-text pl-6'
+              }`}
+              data-heading-slug={heading.slug}
+            >
+              {heading.text}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </nav>
+)}
+
+<style>
+  .toc-link.active {
+    color: var(--color-accent);
+    border-left: 2px solid var(--color-accent);
+    margin-left: -1px;
+  }
+</style>
+
+<script>
+  // Highlight current section on scroll
+  const tocLinks = document.querySelectorAll('.toc-link');
+  const headings = document.querySelectorAll('h2[id], h3[id]');
+  
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          tocLinks.forEach((link) => {
+            link.classList.toggle(
+              'active',
+              link.getAttribute('data-heading-slug') === entry.target.id
+            );
+          });
+        }
+      });
+    },
+    {
+      rootMargin: '-80px 0px -80% 0px'
+    }
+  );
+  
+  headings.forEach((heading) => observer.observe(heading));
+</script>

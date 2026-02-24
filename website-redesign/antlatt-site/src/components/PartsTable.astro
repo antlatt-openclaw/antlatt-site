@@ -1,0 +1,91 @@
+---
+// Parts Table - Reusable component for build articles
+interface Part {
+  name: string;
+  model?: string;
+  price?: number;
+  link?: string;
+  affiliate?: 'amazon' | 'newegg';
+}
+
+interface Props {
+  parts: Part[];
+  title?: string;
+}
+
+const { parts = [], title = 'Parts Used' } = Astro.props;
+
+function getAffiliateLink(part: Part): string | null {
+  if (!part.affiliate || !part.model) return part.link || null;
+  
+  // These would be replaced with actual affiliate link patterns
+  const affiliateIds = {
+    amazon: 'antlatt-20',
+    newegg: 'antlatt'
+  };
+  
+  if (part.affiliate === 'amazon' && part.model) {
+    return `https://www.amazon.com/s?k=${encodeURIComponent(part.model)}&tag=${affiliateIds.amazon}`;
+  }
+  
+  if (part.affiliate === 'newegg' && part.model) {
+    return `https://www.newegg.com/p/${encodeURIComponent(part.model)}`;
+  }
+  
+  return part.link || null;
+}
+---
+
+<div class="parts-table bg-surface border border-border rounded-xl overflow-hidden my-8">
+  <div class="px-6 py-4 border-b border-border bg-surface-hover">
+    <h3 class="text-lg font-bold">{title}</h3>
+  </div>
+  
+  <div class="overflow-x-auto">
+    <table class="w-full">
+      <thead>
+        <tr class="text-left text-sm text-text-muted border-b border-border">
+          <th class="px-6 py-3 font-medium">Component</th>
+          <th class="px-6 py-3 font-medium">Model</th>
+          <th class="px-6 py-3 font-medium text-right">Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        {parts.map((part, index) => {
+          const link = getAffiliateLink(part);
+          return (
+            <tr class={`border-b border-border last:border-0 hover:bg-surface-hover transition-colors ${index % 2 === 0 ? '' : 'bg-bg/50'}`}>
+              <td class="px-6 py-4 font-medium">
+                {link ? (
+                  <a href={link} target="_blank" rel="noopener noreferrer" class="text-accent hover:text-accent-hover">
+                    {part.name}
+                  </a>
+                ) : (
+                  part.name
+                )}
+              </td>
+              <td class="px-6 py-4 text-text-muted text-sm">
+                {part.model || '—'}
+              </td>
+              <td class="px-6 py-4 text-right font-mono">
+                {part.price ? `$${part.price.toLocaleString()}` : '—'}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+      <tfoot>
+        <tr class="bg-surface-hover font-semibold">
+          <td class="px-6 py-4" colspan="2">Total</td>
+          <td class="px-6 py-4 text-right text-accent font-mono">
+            ${parts.reduce((sum, p) => sum + (p.price || 0), 0).toLocaleString()}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  
+  <div class="px-6 py-3 border-t border-border text-xs text-text-muted">
+    <p>* Prices are approximate at time of purchase. Links may include affiliate commissions.</p>
+  </div>
+</div>

@@ -1,0 +1,46 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  href: string;
+  image?: string;
+  tags?: string[];
+  date?: string;
+}
+
+const { title, description, href, image, tags = [], date } = Astro.props;
+---
+
+<a href={href} class="card group block">
+  {image && (
+    <div class="aspect-video overflow-hidden">
+      <img 
+        src={image} 
+        alt={title}
+        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+      />
+    </div>
+  )}
+  <div class="p-5">
+    <h3 class="text-lg font-semibold mb-2 text-text group-hover:text-accent transition-colors">
+      {title}
+    </h3>
+    <p class="text-text-muted text-sm mb-4 line-clamp-2">
+      {description}
+    </p>
+    <div class="flex items-center justify-between">
+      {tags.length > 0 && (
+        <div class="flex flex-wrap gap-1">
+          {tags.slice(0, 2).map((tag: string) => (
+            <span class="tag">{tag}</span>
+          ))}
+        </div>
+      )}
+      {date && (
+        <span class="text-xs text-text-muted">
+          {new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+        </span>
+      )}
+    </div>
+  </div>
+</a>

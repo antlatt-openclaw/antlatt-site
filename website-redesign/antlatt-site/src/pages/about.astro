@@ -1,0 +1,74 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+---
+
+<BaseLayout title="About | ANTLATT.COM" description="About Anthony Lattanzio - tech enthusiast, builder, and homelab operator.">
+  <Hero title="About Me" />
+
+  <section class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="prose">
+      <h2>Hey, I'm Anthony.</h2>
+      
+      <p>
+        I'm a tech enthusiast who likes to build things. If it involves hardware, software, 
+        or ideally both, I'm probably interested. This site is where I document my projects — 
+        some practical, some ridiculous, all fun.
+      </p>
+
+      <h2>What I Do</h2>
+      
+      <p>
+        By day, I work in tech. By night, I run a homelab that's grown way beyond what 
+        any reasonable person needs in their house. Current infrastructure includes:
+      </p>
+
+      <ul>
+        <li><strong>Qdrant</strong> — Vector database for AI memory systems</li>
+        <li><strong>Redis</strong> — Fast buffer for real-time data</li>
+        <li><strong>Ollama</strong> — Local LLM inference (qwen3, mxbai-embed-large)</li>
+        <li><strong>True-Recall</strong> — A JARVIS-like persistent memory system for AI assistants</li>
+        <li><strong>Various other services</strong> — More containers than I'd like to admit</li>
+      </ul>
+
+      <h2>Philosophy</h2>
+      
+      <p>
+        I believe in learning by building. Every project on this site started with 
+        "I wonder if I could..." and ended with either a working solution or a 
+        spectacular failure. Both are valuable.
+      </p>
+      
+      <p>
+        I also believe in self-hosting when it makes sense. There's something satisfying 
+        about running your own infrastructure — knowing exactly where your data lives 
+        and having complete control over your tools.
+      </p>
+
+      <h2>This Site</h2>
+      
+      <p>
+        Built with <strong>Astro</strong>, styled with <strong>Tailwind CSS</strong>, 
+        self-hosted on <strong>Docker with nginx</strong>. Fast, simple, no tracking, no nonsense.
+      </p>
+
+      <p>
+        The site runs in a Docker container on my homelab, served via nginx. 
+        This gives me full control over hosting and makes it easy to integrate with 
+        my other self-hosted services like the AI-powered search.
+      </p>
+      
+      <p>
+        Check out the <a href="/lab">Lab Status</a> page to see the live status of 
+        all my infrastructure.
+      </p>
+
+      <h2>Get In Touch</h2>
+      
+      <p>
+        Questions about a project? Want to collaborate? Just want to say hi?
+        Head over to the <a href="/contact">contact page</a> or find me on the links below.
+      </p>
+    </div>
+  </section>
+</BaseLayout>

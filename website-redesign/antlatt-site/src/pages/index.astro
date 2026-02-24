@@ -1,0 +1,93 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Card from '../components/Card.astro';
+import Hero from '../components/Hero.astro';
+
+const builds = [
+  {
+    title: '10G 20TB Plex NAS',
+    description: 'Build a high-performance media server with 10G networking and massive storage.',
+    href: '/builds/nas-build',
+    image: '/images/builds/nas/nasthumb.jpg',
+    tags: ['NAS', 'Plex', 'Storage'],
+    date: '2024-03-15'
+  },
+  {
+    title: 'Ultimate Arcade',
+    description: 'Mod an Arcade1Up machine to play any console game from Atari to PS3.',
+    href: '/builds/arcade-build',
+    image: '/images/builds/arcade/arcadethumb.png',
+    tags: ['Arcade', 'Retro', 'Gaming'],
+    date: '2024-02-20'
+  },
+  {
+    title: 'Server Rack Build',
+    description: 'One rack to rule them all — the ultimate homelab infrastructure.',
+    href: '/builds/server-rack',
+    image: '/images/builds/rack/rackthumb.png',
+    tags: ['Server', 'Homelab', 'Unraid'],
+    date: '2024-01-10'
+  },
+  {
+    title: 'Pi-hole Network Ad Blocker',
+    description: 'Whole-network ad blocking on a $5 Raspberry Pi Zero.',
+    href: '/builds/pihole',
+    image: '/images/builds/pihole/pihole.png',
+    tags: ['Raspberry Pi', 'Network', 'Privacy'],
+    date: '2023-11-05'
+  }
+];
+---
+
+<BaseLayout>
+  <Hero 
+    title="TECH STUFF & GENERAL GEEKERY"
+    subtitle="Because I have way too much free time. Builds, projects, and whatever else catches my attention."
+  />
+
+  <!-- Builds Section -->
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="flex items-center justify-between mb-8">
+      <h2 class="text-2xl font-bold">Featured Builds</h2>
+      <a href="/builds" class="btn btn-secondary text-sm">
+        View All
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {builds.map((build) => (
+        <Card {...build} />
+      ))}
+    </div>
+  </section>
+
+  <!-- About Teaser -->
+  <section class="border-t border-border bg-surface">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div class="grid md:grid-cols-2 gap-12 items-center">
+        <div>
+          <h2 class="text-3xl font-bold mb-4">About Me</h2>
+          <p class="text-text-muted mb-6">
+            I'm Anthony — a tech enthusiast who likes to build things. NAS servers, arcade machines, 
+            homelab infrastructure — if it involves hardware and software, I'm probably interested.
+          </p>
+          <p class="text-text-muted mb-6">
+            Currently running a self-hosted AI assistant with persistent memory (True-Recall), 
+            vector databases (Qdrant), and a bunch of other infrastructure that's probably overkill.
+          </p>
+          <a href="/about" class="btn btn-primary">
+            Get the Full Story
+          </a>
+        </div>
+        <div class="relative">
+          <div class="aspect-square rounded-xl bg-gradient-to-br from-accent/20 to-code/10 flex items-center justify-center border border-border">
+            <span class="text-6xl">🛠️</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

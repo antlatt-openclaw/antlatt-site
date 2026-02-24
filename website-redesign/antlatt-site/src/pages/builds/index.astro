@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Card from '../../components/Card.astro';
+import { getCollection } from 'astro:content';
+
+const builds = await getCollection('builds');
+const sortedBuilds = builds.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+
+<BaseLayout title="Builds | ANTLATT.COM">
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <h1 class="text-4xl font-bold mb-4">Builds & Projects</h1>
+    <p class="text-text-muted text-lg mb-12">
+      Hardware projects, server builds, and various technical experiments.
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {sortedBuilds.map((build) => (
+        <Card
+          title={build.data.title}
+          description={build.data.description}
+          href={`/builds/${build.slug}`}
+          image={build.data.image}
+          tags={build.data.tags}
+          date={build.data.date.toISOString()}
+        />
+      ))}
+    </div>
+  </section>
+</BaseLayout>

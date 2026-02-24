@@ -1,0 +1,261 @@
+---
+// Client-Side Search Modal Component
+// Uses pre-built search index for static hosting
+---
+
+<div id="search-modal" class="fixed inset-0 z-[100] hidden" role="dialog" aria-modal="true" aria-labelledby="search-title">
+  <!-- Backdrop -->
+  <div class="fixed inset-0 bg-black/70 backdrop-blur-sm" data-search-close></div>
+  
+  <!-- Modal -->
+  <div class="fixed inset-0 flex items-start justify-center pt-[10vh] px-4">
+    <div class="relative bg-surface border border-border rounded-xl shadow-2xl w-full max-w-2xl max-h-[70vh] overflow-hidden">
+      <!-- Search Input -->
+      <div class="flex items-center border-b border-border p-4">
+        <svg class="w-5 h-5 text-text-muted mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input 
+          type="text" 
+          id="search-input"
+          placeholder="Search builds and articles..."
+          class="flex-1 bg-transparent text-text focus:outline-none text-lg"
+          autocomplete="off"
+        />
+        <kbd class="hidden sm:inline-block px-2 py-1 text-xs text-text-muted bg-bg border border-border rounded">ESC</kbd>
+      </div>
+      
+      <!-- Results -->
+      <div id="search-results" class="overflow-y-auto max-h-[50vh] p-2">
+        <div class="text-center text-text-muted py-12">
+          <p>Start typing to search...</p>
+          <p class="text-sm mt-2">Search across all builds and articles</p>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <div class="border-t border-border p-3 flex items-center justify-between text-xs text-text-muted">
+        <div class="flex items-center gap-4">
+          <span><kbd class="px-1.5 py-0.5 bg-bg border border-border rounded">↵</kbd> Select</span>
+          <span><kbd class="px-1.5 py-0.5 bg-bg border border-border rounded">↑↓</kbd> Navigate</span>
+        </div>
+        <span>Client-side search</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #search-modal.showing {
+    display: block;
+  }
+  
+  .search-result {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .search-result:hover,
+  .search-result.selected {
+    background-color: var(--color-surface-hover);
+  }
+  
+  .search-result-title {
+    font-weight: 500;
+    color: var(--color-text);
+  }
+  
+  .search-result-desc {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .search-result-tag {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    background-color: rgba(99, 102, 241, 0.2);
+    color: var(--color-accent);
+    border-radius: 9999px;
+    margin-right: 0.25rem;
+  }
+</style>
+
+<script>
+  const modal = document.getElementById('search-modal');
+  const input = document.getElementById('search-input') as HTMLInputElement;
+  const resultsContainer = document.getElementById('search-results');
+  
+  let selectedIndex = -1;
+  let results: any[] = [];
+  let searchIndex: any[] = [];
+  let indexLoaded = false;
+  
+  // Open modal on Cmd+K / Ctrl+K
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      openModal();
+    }
+    if (e.key === 'Escape') {
+      closeModal();
+    }
+  });
+  
+  // Close on backdrop click
+  document.querySelectorAll('[data-search-close]').forEach(el => {
+    el.addEventListener('click', closeModal);
+  });
+  
+  function openModal() {
+    modal?.classList.add('showing');
+    input?.focus();
+    document.body.style.overflow = 'hidden';
+    loadIndex();
+  }
+  
+  function closeModal() {
+    modal?.classList.remove('showing');
+    document.body.style.overflow = '';
+    if (input) input.value = '';
+    results = [];
+    selectedIndex = -1;
+  }
+  
+  async function loadIndex() {
+    if (indexLoaded) return;
+    
+    try {
+      const response = await fetch('/api/search-index.json');
+      if (response.ok) {
+        searchIndex = await response.json();
+        indexLoaded = true;
+      }
+    } catch (e) {
+      console.error('Failed to load search index:', e);
+    }
+  }
+  
+  // Search input handler with debounce
+  let debounceTimer: ReturnType<typeof setTimeout>;
+  input?.addEventListener('input', (e) => {
+    const query = (e.target as HTMLInputElement).value.trim();
+    clearTimeout(debounceTimer);
+    
+    if (!query) {
+      resultsContainer!.innerHTML = `
+        <div class="text-center text-text-muted py-12">
+          <p>Start typing to search...</p>
+          <p class="text-sm mt-2">Search across all builds and articles</p>
+        </div>
+      `;
+      return;
+    }
+    
+    debounceTimer = setTimeout(() => search(query), 150);
+  });
+  
+  // Keyboard navigation
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIndex = Math.min(selectedIndex + 1, results.length - 1);
+      updateSelection();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIndex = Math.max(selectedIndex - 1, 0);
+      updateSelection();
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      const result = results[selectedIndex];
+      if (result?.url) {
+        window.location.href = result.url;
+      }
+    }
+  });
+  
+  function updateSelection() {
+    const items = resultsContainer?.querySelectorAll('.search-result');
+    items?.forEach((item, i) => {
+      item.classList.toggle('selected', i === selectedIndex);
+    });
+  }
+  
+  function search(query: string) {
+    if (!indexLoaded || searchIndex.length === 0) {
+      resultsContainer!.innerHTML = `
+        <div class="text-center text-text-muted py-12">
+          <p>Loading search index...</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const queryLower = query.toLowerCase();
+    const queryTerms = queryLower.split(/\s+/);
+    
+    // Score and rank results
+    results = searchIndex
+      .map(item => {
+        let score = 0;
+        const titleLower = item.title.toLowerCase();
+        const descLower = item.description.toLowerCase();
+        const tagsLower = (item.tags || []).join(' ').toLowerCase();
+        
+        // Title matches (highest weight)
+        if (titleLower.includes(queryLower)) score += 10;
+        for (const term of queryTerms) {
+          if (titleLower.includes(term)) score += 3;
+        }
+        
+        // Description matches
+        for (const term of queryTerms) {
+          if (descLower.includes(term)) score += 2;
+        }
+        
+        // Tag matches
+        for (const term of queryTerms) {
+          if (tagsLower.includes(term)) score += 2;
+        }
+        
+        // Content matches (lowest weight)
+        if (item.content) {
+          for (const term of queryTerms) {
+            const matches = (item.content.match(new RegExp(term, 'g')) || []).length;
+            score += Math.min(matches, 5);
+          }
+        }
+        
+        return { ...item, score };
+      })
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+    
+    selectedIndex = -1;
+    
+    if (results.length === 0) {
+      resultsContainer!.innerHTML = `
+        <div class="text-center text-text-muted py-12">
+          <p>No results found for "${query}"</p>
+          <p class="text-sm mt-2">Try a different search term</p>
+        </div>
+      `;
+      return;
+    }
+    
+    resultsContainer!.innerHTML = results.map((r, i) => `
+      <a href="${r.url}" class="search-result block" data-index="${i}">
+        <div class="search-result-title">${r.title}</div>
+        <div class="search-result-desc">${r.description || ''}</div>
+        ${r.tags?.length ? `<div class="mt-2">${r.tags.map((t: string) => `<span class="search-result-tag">${t}</span>`).join('')}</div>` : ''}
+      </a>
+    `).join('');
+  }
+</script>

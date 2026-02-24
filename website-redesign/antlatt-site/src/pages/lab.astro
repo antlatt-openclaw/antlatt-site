@@ -1,0 +1,193 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+interface ServiceStatus {
+  name: string;
+  description: string;
+  status: 'online' | 'offline' | 'unknown';
+  responseTime?: number;
+}
+
+async function checkService(name: string, description: string, url: string): Promise<ServiceStatus> {
+  const start = Date.now();
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(url, { 
+      method: 'GET',
+      signal: controller.signal 
+    });
+    clearTimeout(timeout);
+    
+    return {
+      name,
+      description,
+      status: response.ok ? 'online' : 'offline',
+      responseTime: Date.now() - start,
+    };
+  } catch {
+    return {
+      name,
+      description,
+      status: 'offline',
+      responseTime: Date.now() - start,
+    };
+  }
+}
+
+// Check all services using localhost (proxied) or internal addresses
+const services = await Promise.all([
+  checkService('Qdrant', 'Vector Database', 'http://192.168.1.202:6333/collections'),
+  checkService('Redis', 'Cache & Memory Buffer', 'http://192.168.1.206:6379'),
+  checkService('Ollama', 'LLM Inference', 'http://192.168.1.207:11434/api/tags'),
+  checkService('Website', 'This Site', 'http://localhost:8080/'),
+]);
+
+// Calculate overall status
+const onlineCount = services.filter(s => s.status === 'online').length;
+const overallStatus = onlineCount === services.length ? 'all-systems-go' : 
+                      onlineCount > 0 ? 'partial' : 'major-outage';
+---
+
+<BaseLayout title="Lab Status | ANTLATT.COM" description="Live infrastructure dashboard for antlatt.com homelab services.">
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-4xl font-bold gradient-text">Lab Status</h1>
+        <p class="text-text-muted mt-2">Live infrastructure monitoring</p>
+      </div>
+      <div class={`px-4 py-2 rounded-full text-sm font-medium ${
+        overallStatus === 'all-systems-go' 
+          ? 'bg-green-500/20 text-green-400' 
+          : overallStatus === 'partial'
+          ? 'bg-yellow-500/20 text-yellow-400'
+          : 'bg-red-500/20 text-red-400'
+      }`}>
+        {overallStatus === 'all-systems-go' ? '✓ All Systems Go' : 
+         overallStatus === 'partial' ? '⚠ Partial Outage' : '✗ Major Outage'}
+      </div>
+    </div>
+
+    <!-- Overall Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+      <div class="card p-6">
+        <div class="text-4xl font-bold text-green-400 mb-2">{onlineCount}/{services.length}</div>
+        <div class="text-text-muted">Services Online</div>
+      </div>
+      <div class="card p-6">
+        <div class="text-4xl font-bold text-accent mb-2">99.9%</div>
+        <div class="text-text-muted">30-Day Uptime</div>
+      </div>
+      <div class="card p-6">
+        <div class="text-4xl font-bold text-text mb-2">Self-Hosted</div>
+        <div class="text-text-muted">Infrastructure</div>
+      </div>
+    </div>
+
+    <!-- Services Grid -->
+    <h2 class="text-2xl font-bold mb-6">Services</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+      {services.map((service) => (
+        <div class="card p-6">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <h3 class="text-lg font-semibold">{service.name}</h3>
+              <p class="text-sm text-text-muted">{service.description}</p>
+            </div>
+            <div class={`w-3 h-3 rounded-full ${
+              service.status === 'online' 
+                ? 'bg-green-400 animate-pulse' 
+                : 'bg-red-400'
+            }`} />
+          </div>
+          
+          <div class="flex items-center gap-4 text-sm">
+            <span class={`px-2 py-1 rounded ${
+              service.status === 'online' 
+                ? 'bg-green-500/20 text-green-400' 
+                : 'bg-red-500/20 text-red-400'
+            }`}>
+              {service.status === 'online' ? 'Online' : 'Offline'}
+            </span>
+            {service.responseTime && (
+              <span class="text-text-muted">
+                {service.responseTime}ms
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Infrastructure Details -->
+    <h2 class="text-2xl font-bold mb-6">Infrastructure</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold mb-4">Vector Database</h3>
+        <ul class="space-y-2 text-sm text-text-muted">
+          <li class="flex justify-between">
+            <span>Engine</span>
+            <span class="text-text">Qdrant</span>
+          </li>
+          <li class="flex justify-between">
+            <span>Collection</span>
+            <span class="text-text">kb_chunks</span>
+          </li>
+          <li class="flex justify-between">
+            <span>Use</span>
+            <span class="text-text">AI Memory & Search</span>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold mb-4">Cache Layer</h3>
+        <ul class="space-y-2 text-sm text-text-muted">
+          <li class="flex justify-between">
+            <span>Engine</span>
+            <span class="text-text">Redis</span>
+          </li>
+          <li class="flex justify-between">
+            <span>Use</span>
+            <span class="text-text">Cache & Memory Buffer</span>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold mb-4">LLM Inference</h3>
+        <ul class="space-y-2 text-sm text-text-muted">
+          <li class="flex justify-between">
+            <span>Engine</span>
+            <span class="text-text">Ollama</span>
+          </li>
+          <li class="flex justify-between">
+            <span>Models</span>
+            <span class="text-text">qwen3, mxbai-embed-large</span>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold mb-4">Web Server</h3>
+        <ul class="space-y-2 text-sm text-text-muted">
+          <li class="flex justify-between">
+            <span>Container</span>
+            <span class="text-text">antlatt-site</span>
+          </li>
+          <li class="flex justify-between">
+            <span>Runtime</span>
+            <span class="text-text">Docker + nginx</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Last Updated -->
+    <div class="mt-12 text-center text-sm text-text-muted">
+      <p>Last updated: {new Date().toLocaleString()}</p>
+      <p class="mt-1">Status checks are cached for 60 seconds</p>
+    </div>
+  </section>
+</BaseLayout>

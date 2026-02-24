@@ -1,0 +1,85 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const videos = [
+  { title: 'Back to the Future', file: 'backtothefuture' },
+  { title: 'Jaws', file: 'jaws' },
+  { title: 'Indiana Jones', file: 'indiana_jones' },
+  { title: 'Say Hello', file: 'sayhello' },
+  { title: 'Tony Montana', file: 'tonymontana' },
+  { title: 'No Country for Old Men', file: 'nocountry' },
+  { title: 'Boomstick', file: 'boomstick' },
+  { title: 'Addimax', file: 'addimax' },
+  { title: 'Captain Coons', file: 'captain_coons' },
+  { title: 'Brad Bastards', file: 'brad_bastards' },
+  { title: 'Waltz', file: 'waltz' },
+  { title: 'Mad', file: 'mad' },
+  { title: 'Shopping', file: 'shopping' },
+  { title: 'Godfather', file: 'godf' },
+  { title: 'Godfather 1', file: 'god1' },
+  { title: 'Chess', file: 'chess' },
+  { title: 'NCFOM Coin', file: 'ncfom_coin' },
+  { title: 'Gladiator', file: 'gladiator' },
+  { title: 'Glad', file: 'glad' },
+  { title: 'Holiday', file: 'holiday' },
+  { title: 'Wick Pencil', file: 'wickpencil' },
+  { title: 'Courtesy', file: 'courtesy' },
+  { title: 'Suit Up', file: 'suit_up_3' },
+  { title: 'Rock', file: 'rock' },
+  { title: 'Fight Club', file: 'fight_club' },
+  { title: 'Slap', file: 'slap' },
+  { title: 'Taken', file: 'taken' },
+  { title: 'Crom', file: 'crom' },
+];
+---
+
+<BaseLayout title="DeepFakes | ANTLATT.COM" description="AI-powered deepfake videos - face swaps, movie recasts, and creative experiments.">
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <h1 class="text-4xl font-bold mb-4 gradient-text">DeepFakes</h1>
+    <p class="text-text-muted text-lg mb-8">
+      AI-powered face swaps, movie recasts, and creative experiments. 
+      Because I was bored and had access to a GPU.
+    </p>
+
+    <div class="p-4 rounded-lg bg-surface border border-border mb-12">
+      <p class="text-text-muted text-sm">
+        ⚠️ <strong>Note:</strong> These videos are for entertainment purposes only. 
+        Deepfakes should never be used for misinformation, fraud, or harassment. 
+        Always clearly label synthetic media.
+      </p>
+    </div>
+
+    <!-- Video Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {videos.map((video) => (
+        <div class="card overflow-hidden group">
+          <div class="aspect-video bg-surface-alt relative">
+            <video 
+              controls 
+              preload="metadata"
+              poster={`/images/deepfakes/${video.file}.jpg`}
+              class="w-full h-full object-contain"
+            >
+              <source src={`/videos/${video.file}.mp4`} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+          <div class="p-4">
+            <h3 class="font-semibold text-text group-hover:text-accent transition-colors">{video.title}</h3>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div class="mt-12 p-6 rounded-xl bg-surface border border-border">
+      <h3 class="text-lg font-semibold mb-2">About These Videos</h3>
+      <p class="text-text-muted mb-4">
+        These were created using deepfake AI technology, primarily for entertainment and experimentation. 
+        The process involves training a neural network on facial images and then mapping those faces onto video footage.
+      </p>
+      <p class="text-text-muted">
+        <strong>Tech stack used:</strong> DeepFaceLab, Python, CUDA, and a lot of patient GPU hours.
+      </p>
+    </div>
+  </section>
+</BaseLayout>

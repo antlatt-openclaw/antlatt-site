@@ -1,0 +1,166 @@
+---
+import SearchModal from '../components/SearchModal.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+}
+
+const { 
+  title = 'ANTLATT.COM', 
+  description = 'Tech stuff, general geekery, and whatever else catches my attention.',
+  image
+} = Astro.props;
+
+const siteUrl = (Astro.site?.toString() ?? 'https://antlatt.com').replace(/\/$/, '');
+const ogImage = image 
+  ? `${siteUrl}/og-dynamic.svg?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description.slice(0, 100))}`
+  : `${siteUrl}/og-image.svg`;
+const pageUrl = Astro.url.href.replace(/([^:]\/)\/+/g, '$1');
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    
+    <!-- RSS Feed -->
+    <link rel="alternate" type="application/rss+xml" title="ANTLATT.COM RSS Feed" href="/rss.xml" />
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:url" content={pageUrl} />
+    <meta property="og:site_name" content="ANTLATT.COM" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    
+    <title>{title}</title>
+  </head>
+  <body class="min-h-screen flex flex-col">
+    <nav class="sticky top-0 z-50 bg-bg/80 backdrop-blur-md border-b border-border">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <a href="/" class="font-bold text-xl text-text hover:text-accent transition-colors">
+            ANTLATT<span class="text-accent">.COM</span>
+          </a>
+          <div class="hidden sm:flex items-center gap-6">
+            <a href="/" class="text-text-muted hover:text-text transition-colors">Home</a>
+            <a href="/builds" class="text-text-muted hover:text-text transition-colors">Builds</a>
+            <a href="/lab" class="text-text-muted hover:text-text transition-colors">Lab</a>
+            <a href="/deepfakes" class="text-text-muted hover:text-text transition-colors">DeepFakes</a>
+            <a href="/about" class="text-text-muted hover:text-text transition-colors">About</a>
+            <a href="/contact" class="text-text-muted hover:text-text transition-colors">Contact</a>
+          </div>
+          <div class="flex items-center gap-3">
+            <!-- Search Button -->
+            <button 
+              id="search-trigger"
+              class="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-text-muted bg-surface border border-border rounded-lg hover:border-accent transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <span>Search</span>
+              <kbd class="px-1.5 py-0.5 text-xs bg-bg border border-border rounded">⌘K</kbd>
+            </button>
+            
+            <!-- Mobile menu button -->
+            <button 
+              id="mobile-menu-trigger"
+              class="sm:hidden text-text-muted hover:text-text"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Mobile menu -->
+      <div id="mobile-menu" class="hidden sm:hidden border-t border-border">
+        <div class="px-4 py-3 space-y-2">
+          <a href="/" class="block text-text-muted hover:text-text transition-colors py-2">Home</a>
+          <a href="/builds" class="block text-text-muted hover:text-text transition-colors py-2">Builds</a>
+          <a href="/lab" class="block text-text-muted hover:text-text transition-colors py-2">Lab</a>
+          <a href="/deepfakes" class="block text-text-muted hover:text-text transition-colors py-2">DeepFakes</a>
+          <a href="/about" class="block text-text-muted hover:text-text transition-colors py-2">About</a>
+          <a href="/contact" class="block text-text-muted hover:text-text transition-colors py-2">Contact</a>
+        </div>
+      </div>
+    </nav>
+
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    <footer class="border-t border-border bg-surface">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p class="text-text-muted text-sm">
+            &copy; {new Date().getFullYear()} Anthony Lattanzio. All rights reserved.
+          </p>
+          <div class="flex items-center gap-4">
+            <a href="/rss.xml" class="text-text-muted hover:text-accent transition-colors" aria-label="RSS Feed" title="RSS Feed">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1Z"/>
+              </svg>
+            </a>
+            <a href="https://youtube.com" class="text-text-muted hover:text-accent transition-colors" aria-label="YouTube">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+            </a>
+            <a href="https://github.com/antlatt-openclaw" class="text-text-muted hover:text-accent transition-colors" aria-label="GitHub">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+              </svg>
+            </a>
+            <a href="mailto:antlatt@gmail.com" class="text-text-muted hover:text-accent transition-colors" aria-label="Email">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Search Modal -->
+    <SearchModal />
+    
+    <script>
+      // Mobile menu toggle
+      const mobileMenuTrigger = document.getElementById('mobile-menu-trigger');
+      const mobileMenu = document.getElementById('mobile-menu');
+      
+      mobileMenuTrigger?.addEventListener('click', () => {
+        mobileMenu?.classList.toggle('hidden');
+      });
+      
+      // Search trigger (open modal on click)
+      const searchTrigger = document.getElementById('search-trigger');
+      const searchModal = document.getElementById('search-modal');
+      
+      searchTrigger?.addEventListener('click', () => {
+        searchModal?.classList.add('showing');
+        document.body.style.overflow = 'hidden';
+        (document.getElementById('search-input') as HTMLInputElement)?.focus();
+      });
+    </script>
+  </body>
+</html>
