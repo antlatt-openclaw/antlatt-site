@@ -1,0 +1,24 @@
+services:
+  status-api:
+    build: .
+    container_name: status-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - QDRANT_URL=http://192.168.1.202:6333/collections
+      - REDIS_HOST=192.168.1.206
+      - REDIS_PORT=6379
+      - OLLAMA_URL=http://192.168.1.207:11434/api/tags
+      - WEBSITE_URL=http://antlatt-site/
+    # If using Docker network with antlatt-site:
+    # networks:
+    #   - antlatt-network
+    extra_hosts:
+      # Allow container to access host's localhost
+      - "host.docker.internal:host-gateway"
+
+# networks:
+#   antlatt-network:
+#     external: true
