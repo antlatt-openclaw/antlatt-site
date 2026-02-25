@@ -1,0 +1,226 @@
+---
+// Web Vitals Tracking Script
+// Uses the web-vitals library to measure Core Web Vitals and send to our API
+// This component should be included in the base layout
+---
+
+<script define:vars={{ VITALS_ENDPOINT: '/api/vitals' }}>
+  // Web Vitals tracking - loaded dynamically to minimize bundle size
+  (function() {
+    // Rate metric based on thresholds
+    function getRating(name, value) {
+      const thresholds = {
+        LCP: [2500, 4000],
+        FID: [100, 300],
+        CLS: [0.1, 0.25],
+        INP: [200, 500],
+        TTFB: [800, 1800],
+        FCP: [1800, 3000],
+      };
+      const [good, poor] = thresholds[name] || [0, 0];
+      if (value > poor) return 'poor';
+      if (value > good) return 'needs-improvement';
+      return 'good';
+    }
+    
+    // Send metric to analytics endpoint
+    function sendToAnalytics(metric) {
+      const body = {
+        name: metric.name,
+        value: metric.value,
+        id: metric.id,
+        rating: getRating(metric.name, metric.value),
+        delta: metric.delta,
+        navigationType: metric.navigationType,
+        page: window.location.pathname,
+        timestamp: new Date().toISOString(),
+      };
+      
+      // Use sendBeacon for reliability on page unload
+      if (navigator.sendBeacon) {
+        const blob = new Blob([JSON.stringify(body)], { type: 'application/json' });
+        navigator.sendBeacon(VITALS_ENDPOINT, blob);
+      } else {
+        // Fallback to fetch with keepalive
+        fetch(VITALS_ENDPOINT, {
+          method: 'POST',
+          body: JSON.stringify(body),
+          headers: { 'Content-Type': 'application/json' },
+          keepalive: true,
+        }).catch(() => {});
+      }
+    }
+    
+    // Calculate Web Vitals using Performance APIs directly
+    // This avoids the need for the web-vitals library dependency
+    
+    // LCP - Largest Contentful Paint
+    function observeLCP() {
+      try {
+        const observer = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          const lastEntry = entries[entries.length - 1];
+          sendToAnalytics({
+            name: 'LCP',
+            value: lastEntry.startTime,
+            id: 'lcp-' + Date.now(),
+            delta: lastEntry.startTime,
+            navigationType: performance.getEntriesByType('navigation')[0]?.type || 'navigate',
+          });
+        });
+        observer.observe({ type: 'largest-contentful-paint', buffered: true });
+      } catch (e) {}
+    }
+    
+    // FID - First Input Delay
+    function observeFID() {
+      try {
+        const observer = new PerformanceObserver((list) => {
+          list.getEntries().forEach((entry) => {
+            sendToAnalytics({
+              name: 'FID',
+              value: entry.processingStart - entry.startTime,
+              id: 'fid-' + Date.now(),
+              delta: entry.processingStart - entry.startTime,
+              navigationType: performance.getEntriesByType('navigation')[0]?.type || 'navigate',
+            });
+          });
+        });
+        observer.observe({ type: 'first-input', buffered: true });
+      } catch (e) {}
+    }
+    
+    // CLS - Cumulative Layout Shift
+    function observeCLS() {
+      try {
+        let clsValue = 0;
+        let clsEntries = [];
+        
+        const observer = new PerformanceObserver((list) => {
+          list.getEntries().forEach((entry) => {
+            if (!entry.hadRecentInput) {
+              const firstSessionEntry = clsEntries[0];
+              const lastSessionEntry = clsEntries[clsEntries.length - 1];
+              
+              if (clsValue && entry.startTime - lastSessionEntry.startTime < 1000 &&
+                  entry.startTime - firstSessionEntry.startTime < 5000) {
+                clsValue += entry.value;
+                clsEntries.push(entry);
+              } else {
+                clsValue = entry.value;
+                clsEntries = [entry];
+              }
+            }
+          });
+        });
+        observer.observe({ type: 'layout-shift', buffered: true });
+        
+        // Report CLS on page visibility change
+        const reportCLS = () => {
+          if (document.visibilityState === 'hidden') {
+            sendToAnalytics({
+              name: 'CLS',
+              value: clsValue,
+              id: 'cls-' + Date.now(),
+              delta: clsValue,
+              navigationType: performance.getEntriesByType('navigation')[0]?.type || 'navigate',
+            });
+          }
+        };
+        
+        document.addEventListener('visibilitychange', reportCLS);
+        window.addEventListener('pagehide', reportCLS);
+      } catch (e) {}
+    }
+    
+    // INP - Interaction to Next Paint
+    function observeINP() {
+      try {
+        let inpValue = 0;
+        let interactions = new Map();
+        
+        const observer = new PerformanceObserver((list) => {
+          list.getEntries().forEach((entry) => {
+            if (entry.interactionId) {
+              const duration = entry.duration;
+              interactions.set(entry.interactionId, Math.max(interactions.get(entry.interactionId) || 0, duration));
+              inpValue = Math.max(...Array.from(interactions.values()));
+            }
+          });
+        });
+        observer.observe({ type: 'event', buffered: true, durationThreshold: 16 });
+        
+        const reportINP = () => {
+          if (document.visibilityState === 'hidden' && interactions.size > 0) {
+            sendToAnalytics({
+              name: 'INP',
+              value: inpValue,
+              id: 'inp-' + Date.now(),
+              delta: inpValue,
+              navigationType: performance.getEntriesByType('navigation')[0]?.type || 'navigate',
+            });
+          }
+        };
+        
+        document.addEventListener('visibilitychange', reportINP);
+        window.addEventListener('pagehide', reportINP);
+      } catch (e) {}
+    }
+    
+    // TTFB - Time to First Byte
+    function observeTTFB() {
+      try {
+        const navigation = performance.getEntriesByType('navigation')[0];
+        if (navigation) {
+          const ttfb = navigation.responseStart - navigation.requestStart;
+          sendToAnalytics({
+            name: 'TTFB',
+            value: ttfb,
+            id: 'ttfb-' + Date.now(),
+            delta: ttfb,
+            navigationType: navigation.type || 'navigate',
+          });
+        }
+      } catch (e) {}
+    }
+    
+    // FCP - First Contentful Paint
+    function observeFCP() {
+      try {
+        const observer = new PerformanceObserver((list) => {
+          list.getEntries().forEach((entry) => {
+            if (entry.name === 'first-contentful-paint') {
+              sendToAnalytics({
+                name: 'FCP',
+                value: entry.startTime,
+                id: 'fcp-' + Date.now(),
+                delta: entry.startTime,
+                navigationType: performance.getEntriesByType('navigation')[0]?.type || 'navigate',
+              });
+            }
+          });
+        });
+        observer.observe({ type: 'paint', buffered: true });
+      } catch (e) {}
+    }
+    
+    // Initialize observers when page is ready
+    if (document.readyState === 'complete') {
+      observeLCP();
+      observeFID();
+      observeCLS();
+      observeINP();
+      observeTTFB();
+      observeFCP();
+    } else {
+      window.addEventListener('load', () => {
+        observeLCP();
+        observeFID();
+        observeCLS();
+        observeINP();
+        observeTTFB();
+        observeFCP();
+      });
+    }
+  })();
+</script>

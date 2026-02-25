@@ -8,7 +8,11 @@ import JsonLD from '../components/JsonLD.astro';
 import CopyCode from '../components/CopyCode.astro';
 import ReadingProgress from '../components/ReadingProgress.astro';
 import ShareButtons from '../components/ShareButtons.astro';
-import { getCollection } from 'astro:content';
+import SeriesNav from '../components/SeriesNav.astro';
+import Comments from '../components/Comments.astro';
+import Breadcrumb from '../components/Breadcrumb.astro';
+import PrintButton from '../components/PrintButton.astro';
+import AuthorBox from '../components/AuthorBox.astro';
 
 interface Props {
   title: string;
@@ -21,9 +25,21 @@ interface Props {
   readingTime?: number;
   prevBuild?: { title: string; slug: string } | null;
   nextBuild?: { title: string; slug: string } | null;
+  series?: { name: string; order: number } | null;
+  category?: string;
 }
 
-const { title, description, date, tags = [], image, slug, headings = [], readingTime, prevBuild, nextBuild } = Astro.props;
+const { title, description, date, tags = [], image, slug, headings = [], readingTime, prevBuild, nextBuild, series, category } = Astro.props;
+
+// Build breadcrumb items
+const breadcrumbItems = [
+  { label: 'Builds', href: '/builds' },
+  ...(category ? [{ label: category, href: `/tags/${category.toLowerCase().replace(/\s+/g, '-')}` }] : []),
+  ...(slug ? [{ label: title }] : [])
+];
+
+// Generate article ID for reading progress persistence
+const articleId = slug || title.toLowerCase().replace(/\s+/g, '-');
 ---
 
 <BaseLayout 
@@ -49,6 +65,9 @@ const { title, description, date, tags = [], image, slug, headings = [], reading
     <div class="lg:grid lg:grid-cols-[1fr_250px] lg:gap-12">
       <!-- Main Content -->
       <div>
+        <!-- Breadcrumb Navigation -->
+        <Breadcrumb items={breadcrumbItems} />
+        
         <!-- Header -->
         <header class="mb-12">
           <h1 class="text-4xl sm:text-5xl font-bold mb-4">{title}</h1>
@@ -76,25 +95,39 @@ const { title, description, date, tags = [], image, slug, headings = [], reading
               </div>
             )}
           </div>
+          
+          <!-- Print Button -->
+          <PrintButton />
         </header>
 
-        <!-- Hero Image -->
+        <!-- Hero Image with Blur Placeholder -->
         {image && (
-          <div class="mb-12 rounded-xl overflow-hidden border border-border">
+          <div class="hero-image-wrapper mb-12 rounded-xl overflow-hidden border border-border">
+            <div class="hero-image-placeholder" aria-hidden="true"></div>
             <img 
               src={image} 
               alt={title}
-              class="w-full aspect-video object-cover"
+              class="hero-image w-full aspect-video object-cover"
               fetchpriority="high"
               decoding="async"
               width="1200"
               height="675"
+              onload="this.closest('.hero-image-wrapper').classList.add('loaded')"
             />
           </div>
         )}
 
         <!-- Mobile Table of Contents -->
         <MobileTOC headings={headings} />
+
+        <!-- Series Navigation (if part of a series) -->
+        {series && slug && (
+          <SeriesNav 
+            seriesName={series.name} 
+            currentSlug={slug} 
+            currentOrder={series.order} 
+          />
+        )}
 
         <!-- Content -->
         <div class="prose">
@@ -111,6 +144,9 @@ const { title, description, date, tags = [], image, slug, headings = [], reading
         
         <!-- Newsletter Signup -->
         <Newsletter />
+        
+        <!-- Author Box -->
+        <AuthorBox />
         
         <!-- Related Builds -->
         {slug && tags.length > 0 && (
@@ -140,17 +176,70 @@ const { title, description, date, tags = [], image, slug, headings = [], reading
             </div>
           </nav>
         )}
+        
+        <!-- Comments Section -->
+        {slug && (
+          <Comments repo="antlatt-openclaw/antlatt-site" />
+        )}
       </div>
 
-      <!-- Table of Contents Sidebar -->
+      <!-- Table of Contents Sidebar with Reading Progress -->
       <aside class="hidden lg:block">
-        <TableOfContents headings={headings} />
+        <TableOfContents headings={headings} articleId={articleId} />
       </aside>
     </div>
   </article>
 </BaseLayout>
 
 <style>
+  /* Hero Image with Blur Placeholder */
+  .hero-image-wrapper {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .hero-image-placeholder {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      var(--color-surface) 0%,
+      var(--color-surface-hover) 30%,
+      var(--color-surface) 50%,
+      var(--color-surface-hover) 70%,
+      var(--color-surface) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    z-index: 1;
+  }
+  
+  .hero-image-wrapper.loaded .hero-image-placeholder {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .hero-image {
+    position: relative;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  
+  .hero-image-wrapper.loaded .hero-image {
+    opacity: 1;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Navigation Cards */
   .nav-card {
     display: flex;
     flex-direction: column;

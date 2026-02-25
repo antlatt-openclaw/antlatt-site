@@ -53,6 +53,7 @@ QDRANT_COLLECTION = os.environ.get("QDRANT_COLLECTION", "true_recall")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://192.168.1.207:11434")
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "mxbai-embed-large")
 CURATOR_MODEL = os.environ.get("CURATOR_MODEL", "qwen3:8b")
+CURATOR_OLLAMA_URL = os.environ.get("CURATOR_OLLAMA_URL", OLLAMA_URL)  # Fallback to OLLAMA_URL
 
 # Load curator prompt (relative to script location)
 CURATOR_PROMPT_PATH = os.path.join(PROJECT_DIR, "curator_prompt.md")
@@ -87,14 +88,34 @@ def get_staged_turns(user_id: str, hours: int = 24) -> List[Dict[str, Any]]:
     
     turns = []
     cutoff = datetime.now() - timedelta(hours=hours)
+    turn_num = 0
     
     for item in items:
         try:
             turn = json.loads(item)
+            
+            # Fill in missing required fields with defaults
+            if 'user_id' not in turn:
+                turn['user_id'] = user_id
+            if 'turn' not in turn:
+                turn_num += 1
+                turn['turn'] = turn_num
+            else:
+                turn_num = max(turn_num, turn['turn'])
+            if 'date' not in turn and 'timestamp' in turn:
+                turn['date'] = turn['timestamp'][:10]
+            elif 'date' not in turn:
+                turn['date'] = datetime.now().strftime('%Y-%m-%d')
+            if 'conversation_id' not in turn:
+                turn['conversation_id'] = turn.get('session_id', 'unknown')
+            if 'timestamp' not in turn:
+                turn['timestamp'] = datetime.now().isoformat()
+            
             # Filter by timestamp if present
-            if 'timestamp' in turn and hours:
+            if hours and 'timestamp' in turn:
                 try:
-                    turn_time = datetime.fromisoformat(turn['timestamp'].replace('Z', '+00:00').replace('+00:00', ''))
+                    ts = turn['timestamp'].replace('Z', '').replace('+00:00', '')
+                    turn_time = datetime.fromisoformat(ts)
                     if turn_time < cutoff:
                         continue
                 except ValueError:
@@ -109,6 +130,46 @@ def get_staged_turns(user_id: str, hours: int = 24) -> List[Dict[str, Any]]:
     return turns
 
 
+def validate_gem(gem: Dict[str, Any], turns: List[Dict[str, Any]] = None) -> tuple[bool, List[str]]:
+    """Validate that a gem has all required fields. Auto-fill some if possible."""
+    required_fields = [
+        'gem', 'context', 'snippet', 'categories',
+        'importance', 'confidence', 'timestamp', 'date',
+        'conversation_id', 'turn_range', 'source_turns'
+    ]
+    
+    # Auto-fill source_turns from turn_range if missing
+    if 'source_turns' not in gem and 'turn_range' in gem:
+        try:
+            tr = gem['turn_range']
+            if '-' in tr:
+                start, end = tr.split('-')
+                gem['source_turns'] = list(range(int(start), int(end) + 1))
+            else:
+                gem['source_turns'] = [int(tr)]
+        except:
+            pass
+    
+    # Auto-fill date from timestamp if missing
+    if 'date' not in gem and 'timestamp' in gem:
+        gem['date'] = gem['timestamp'][:10]
+    
+    missing = [f for f in required_fields if f not in gem or gem.get(f) is None]
+    
+    # Additional validation
+    errors = []
+    if missing:
+        errors.append(f"Missing fields: {missing}")
+    if 'confidence' in gem and not (0.0 <= gem['confidence'] <= 1.0):
+        errors.append(f"Invalid confidence: {gem['confidence']}")
+    if 'importance' in gem and gem['importance'] not in ['high', 'medium', 'low']:
+        errors.append(f"Invalid importance: {gem['importance']}")
+    if 'categories' in gem and (not isinstance(gem['categories'], list) or len(gem['categories']) == 0):
+        errors.append("Categories must be non-empty array")
+    
+    return len(errors) == 0, errors
+
+
 def extract_gems_with_curator(turns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Use qwen3 to extract gems from conversation turns."""
     if not turns:
@@ -121,9 +182,9 @@ def extract_gems_with_curator(turns: List[Dict[str, Any]]) -> List[Dict[str, Any
     
     print(f"📝 Sending {len(turns)} turns to curator ({CURATOR_MODEL})...")
     
-    # Call Ollama with native system prompt
+    # Call Ollama with native system prompt (use CURATOR_OLLAMA_URL if set)
     response = requests.post(
-        f"{OLLAMA_URL}/api/generate",
+        f"{CURATOR_OLLAMA_URL}/api/generate",
         json={
             "model": CURATOR_MODEL,
             "system": prompt,
@@ -131,7 +192,7 @@ def extract_gems_with_curator(turns: List[Dict[str, Any]]) -> List[Dict[str, Any
             "stream": False,
             "options": {
                 "temperature": 0.1,
-                "num_predict": 4000
+                "num_predict": 8000
             }
         },
         timeout=120
@@ -154,7 +215,17 @@ def extract_gems_with_curator(turns: List[Dict[str, Any]]) -> List[Dict[str, Any
         if not isinstance(gems, list):
             print(f"Warning: Curator returned non-list, wrapping: {type(gems)}")
             gems = [gems] if gems else []
-        return gems
+        
+        # Validate each gem
+        valid_gems = []
+        for i, gem in enumerate(gems):
+            is_valid, errors = validate_gem(gem)
+            if is_valid:
+                valid_gems.append(gem)
+            else:
+                print(f"⚠️ Skipping invalid gem {i+1}: {'; '.join(errors)}")
+        
+        return valid_gems
     except json.JSONDecodeError as e:
         print(f"Error parsing curator output: {e}")
         print(f"Raw output: {output[:500]}...")
@@ -281,16 +352,18 @@ def main():
             print(f"  ✅ Stored: {gem.get('gem', 'N/A')[:50]}...")
         else:
             print(f"  ⚠️ Failed to store gem: {gem.get('gem', 'N/A')[:50]}...")
-    
     print(f"\n✅ Stored {stored}/{len(gems)} gems")
-    
-    # Clear buffer
-    print("\n🧹 Clearing Redis buffer...")
-    if clear_staged_turns(args.user_id):
-        print("✅ Buffer cleared")
+
+    # Only clear buffer if gems were successfully extracted
+    if len(gems) > 0 and stored > 0:
+        print("\n🧹 Clearing Redis buffer...")
+        if clear_staged_turns(args.user_id):
+            print("✅ Buffer cleared")
+        else:
+            print("⚠️ Buffer was empty or already cleared")
     else:
-        print("⚠️ Buffer was empty or already cleared")
-    
+        print("\n⚠️ No gems extracted - keeping buffer for next run")
+
     print("\n🎉 Curation complete!")
 
 

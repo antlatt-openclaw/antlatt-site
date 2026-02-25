@@ -12,9 +12,38 @@
 ## Communication
 
 - **Primary Contact**: Anthony Lattanzio
-- **Telegram**: 8570577057
+- **Telegram**: 8570577057 (primary channel)
+- **Slack**: User ID `U0AGQEN4162`, Bot ID `U0AGB352N95`
 - **Email**: antlatt@gmail.com, antlatt.openclaw@gmail.com
 - **Timezone**: America/New_York (EST)
+
+## Slack Integration
+
+- **App Name**: OpenClaw
+- **Mode**: Socket Mode (WebSocket connection, no public endpoint needed)
+- **User ID**: `U0AGQEN4162`
+- **Bot ID**: `U0AGB352N95`
+- **DM Channel ID**: `D0AH643EWBB`
+- **Workspace**: `T0AGQEHDSB0`
+
+### Required Scopes
+- `chat:write`, `im:write`, `im:history`, `im:read`
+- `channels:history`, `channels:read`, `groups:history`, `groups:read`
+- `mpim:history`, `mpim:read`, `users:read`, `reactions:write`, `files:write`
+
+### Required Events (Event Subscriptions)
+- `message.im` - DMs to the bot
+- `message.channels` - Channel messages
+- `message.groups` - Private channel messages
+
+### Setup Checklist
+1. Create Slack App at api.slack.com
+2. Enable Socket Mode, generate App-Level Token
+3. Add Bot Token Scopes
+4. Subscribe to bot events (`message.im`, etc.)
+5. Enable App Home → Messages Tab
+6. Install to Workspace
+7. Add user ID to allowFrom in config
 
 ## Infrastructure
 
@@ -25,6 +54,7 @@
 | Kokoro TTS | 192.168.1.204:8880 | Text-to-speech |
 | Ollama (embeddings) | 192.168.1.207:11434 | Embeddings + qwen3:8b |
 | SearXNG | localhost:8888 | Local search |
+| **ComfyUI** | **192.168.1.142:8188** | **Image/video generation** |
 
 ## Telegram Topics
 
@@ -123,6 +153,7 @@ docker logs antlatt-site
 ---
 
 *Update this file with significant learnings and preferences over time.*
+
 ## Knowledge Base (RAG)
 
 - **Collections**: `kb_sources`, `kb_chunks`
@@ -132,7 +163,7 @@ docker logs antlatt-site
 ## True-Recall Memory System
 
 ### Architecture
-- **Capture**: Turns → Redis `mem:antlatt` (manual/hook staging)
+- **Capture**: Turns → Redis `mem:antlatt` (automatic via `hooks/memory-stager/`)
 - **Curation**: 2:30 AM cron (`qwen3:8b` extracts gems)
 - **Storage**: Qdrant `true_recall` collection (1024-dim, `mxbai-embed-large`)
 - **Retrieval**: On-demand search via `.projects/true-recall/tr-out/scripts/search_memories.py`
@@ -144,11 +175,16 @@ docker logs antlatt-site
 | 3:00 AM | jarvis-memory backup |
 | 3:30 AM | File archive |
 
+### Known Limitations
+- **AI responses not captured**: The memory-stager hook stages user messages but doesn't yet update with AI responses (all turns have empty `ai_response` field)
+- **Fix pending**: Update hook to append AI responses on `sent` events
+
 ### Key Files
 - **Curator**: `.projects/true-recall/tr-process/curate_memories.py`
 - **Search**: `.projects/true-recall/tr-out/scripts/search_memories.py`
 - **Config**: `.projects/true-recall/.env`
 - **Prompt**: `.projects/true-recall/curator_prompt.md`
+- **Staging hook**: `hooks/memory-stager/handler.ts`
 
 ### Usage
 ```bash

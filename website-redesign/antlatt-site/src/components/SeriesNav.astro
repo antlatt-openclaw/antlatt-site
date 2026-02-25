@@ -1,0 +1,262 @@
+---
+import { getCollection } from 'astro:content';
+
+interface Props {
+  seriesName: string;
+  currentSlug: string;
+  currentOrder: number;
+}
+
+const { seriesName, currentSlug, currentOrder } = Astro.props;
+
+// Get all builds in this series, sorted by order
+const allBuilds = await getCollection('builds');
+const seriesBuilds = allBuilds
+  .filter(b => b.data.series?.name === seriesName)
+  .sort((a, b) => (a.data.series?.order || 0) - (b.data.series?.order || 0));
+
+const totalParts = seriesBuilds.length;
+const currentIndex = seriesBuilds.findIndex(b => b.slug === currentSlug);
+const prevInSeries = currentIndex > 0 ? seriesBuilds[currentIndex - 1] : null;
+const nextInSeries = currentIndex < seriesBuilds.length - 1 ? seriesBuilds[currentIndex + 1] : null;
+
+// Generate a slug from series name
+const seriesSlug = seriesName.toLowerCase().replace(/\s+/g, '-');
+---
+
+<div class="series-nav">
+  <div class="series-header">
+    <a href={`/series/${seriesSlug}`} class="series-name">
+      <svg class="series-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+      </svg>
+      <span>{seriesName}</span>
+    </a>
+    <span class="series-progress">Part {currentOrder} of {totalParts}</span>
+  </div>
+  
+  <div class="series-parts">
+    {seriesBuilds.map((build, idx) => (
+      <a 
+        href={`/builds/${build.slug}`} 
+        class={`series-part ${build.slug === currentSlug ? 'active' : ''}`}
+        aria-current={build.slug === currentSlug ? 'page' : undefined}
+      >
+        <span class="part-number">{idx + 1}</span>
+        <span class="part-title">{build.data.title}</span>
+      </a>
+    ))}
+  </div>
+  
+  {(prevInSeries || nextInSeries) && (
+    <div class="series-nav-buttons">
+      {prevInSeries ? (
+        <a href={`/builds/${prevInSeries.slug}`} class="series-nav-btn prev">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span>
+            <span class="btn-label">Previous in Series</span>
+            <span class="btn-title">{prevInSeries.data.title}</span>
+          </span>
+        </a>
+      ) : <div class="series-nav-btn empty"></div>}
+      
+      {nextInSeries ? (
+        <a href={`/builds/${nextInSeries.slug}`} class="series-nav-btn next">
+          <span>
+            <span class="btn-label">Next in Series</span>
+            <span class="btn-title">{nextInSeries.data.title}</span>
+          </span>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      ) : <div class="series-nav-btn empty"></div>}
+    </div>
+  )}
+</div>
+
+<style>
+  .series-nav {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin-bottom: 2rem;
+  }
+  
+  .series-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  
+  .series-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  
+  .series-name:hover {
+    color: var(--color-accent-hover);
+  }
+  
+  .series-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  
+  .series-progress {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    background: var(--color-bg);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+  }
+  
+  .series-parts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .series-part {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+  
+  .series-part:hover {
+    border-color: var(--color-accent);
+    color: var(--color-text);
+  }
+  
+  .series-part.active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+  }
+  
+  .series-part.active .part-number {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+  
+  .part-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: var(--color-surface-hover);
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+  }
+  
+  .part-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+  
+  .series-nav-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+  }
+  
+  .series-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  
+  .series-nav-btn:hover {
+    border-color: var(--color-accent);
+    background: var(--color-surface-hover);
+  }
+  
+  .series-nav-btn:hover .btn-title {
+    color: var(--color-accent);
+  }
+  
+  .series-nav-btn svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+  }
+  
+  .series-nav-btn.next {
+    justify-content: flex-end;
+    text-align: right;
+  }
+  
+  .series-nav-btn.empty {
+    visibility: hidden;
+  }
+  
+  .btn-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.125rem;
+  }
+  
+  .btn-title {
+    display: block;
+    font-weight: 500;
+    color: var(--color-text);
+    font-size: 0.875rem;
+    transition: color 0.2s ease;
+  }
+  
+  @media (max-width: 640px) {
+    .series-nav-buttons {
+      grid-template-columns: 1fr;
+    }
+    
+    .series-nav-btn.next {
+      justify-content: flex-start;
+      text-align: left;
+    }
+    
+    .series-nav-btn.next svg {
+      order: -1;
+    }
+    
+    .part-title {
+      max-width: 150px;
+    }
+  }
+</style>

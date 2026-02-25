@@ -41,6 +41,8 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
   readingTime={readingTime}
   prevBuild={prevBuild ? { title: prevBuild.data.title, slug: prevBuild.slug } : null}
   nextBuild={nextBuild ? { title: nextBuild.data.title, slug: nextBuild.slug } : null}
+  series={build.data.series ? { name: build.data.series.name, order: build.data.series.order } : null}
+  category={build.data.tags[0]}
 >
   <Content />
 </ArticleLayout>

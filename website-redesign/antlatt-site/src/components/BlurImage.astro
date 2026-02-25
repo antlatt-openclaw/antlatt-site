@@ -1,0 +1,111 @@
+---
+// BlurImage component with blur placeholder and fade-in effect
+// Uses Astro's Image component with blur placeholder support
+import { Image } from 'astro:assets';
+
+interface Props {
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  class?: string;
+  loading?: 'lazy' | 'eager';
+  fetchpriority?: 'high' | 'low' | 'auto';
+  placeholder?: boolean;
+}
+
+const { 
+  src, 
+  alt, 
+  width, 
+  height, 
+  class: className = '', 
+  loading = 'lazy',
+  fetchpriority = 'auto',
+  placeholder = true
+} = Astro.props;
+
+// Generate a simple blur data URL (16x16 gray gradient)
+const blurDataURL = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="16" height="16"%3E%3Crect width="16" height="16" fill="%2312121a"/%3E%3C/svg%3E';
+
+// Extract image path - we'll use the src directly for now
+// When using Astro's Image component with local images, we can use the blur placeholder
+---
+
+<div class:list={['blur-image-wrapper', className]}>
+  {placeholder && (
+    <div class="blur-placeholder" aria-hidden="true"></div>
+  )}
+  <img 
+    src={src}
+    alt={alt}
+    width={width}
+    height={height}
+    loading={loading}
+    fetchpriority={fetchpriority}
+    decoding="async"
+    class="blur-image"
+  />
+</div>
+
+<script>
+  // Fade in images when they load
+  document.querySelectorAll('.blur-image-wrapper img').forEach((img) => {
+    if (img.complete) {
+      img.parentElement?.classList.add('loaded');
+    } else {
+      img.addEventListener('load', () => {
+        img.parentElement?.classList.add('loaded');
+      });
+    }
+  });
+</script>
+
+<style>
+  .blur-image-wrapper {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-surface);
+  }
+
+  .blur-placeholder {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      var(--color-surface) 0%,
+      rgba(99, 102, 241, 0.1) 50%,
+      var(--color-surface) 100%
+    );
+    animation: shimmer 2s infinite;
+    z-index: 1;
+  }
+
+  .blur-image-wrapper.loaded .blur-placeholder {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .blur-image {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .blur-image-wrapper.loaded .blur-image {
+    opacity: 1;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+</style>

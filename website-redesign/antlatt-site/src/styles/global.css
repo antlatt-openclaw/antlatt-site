@@ -303,3 +303,223 @@ textarea:focus-visible {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-accent);
 }
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  /* Reset background and colors for print */
+  *,
+  *::before,
+  *::after {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Hide navigation and UI elements */
+  nav,
+  footer,
+  .search-modal,
+  #search-modal,
+  #search-trigger,
+  .share-buttons,
+  .newsletter,
+  #newsletter-section,
+  .reading-progress,
+  .mobile-toc,
+  .toc-container,
+  .code-line-toggle,
+  .code-copy-btn,
+  .code-block-header,
+  .article-nav,
+  .breadcrumb-nav,
+  .author-box a[href*="youtube"],
+  .author-box a[href*="github"],
+  .author-box a[href*="twitter"],
+  .author-box a[href*="linkedin"],
+  .mobile-menu-trigger,
+  #mobile-menu {
+    display: none !important;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 2cm;
+    size: letter;
+  }
+
+  /* Article header */
+  article {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* Typography adjustments for print */
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-size: 24pt;
+    page-break-after: avoid;
+  }
+
+  h2 {
+    font-size: 18pt;
+    page-break-after: avoid;
+    margin-top: 1.5em;
+  }
+
+  h3 {
+    font-size: 14pt;
+    page-break-after: avoid;
+    margin-top: 1em;
+  }
+
+  h4 {
+    font-size: 12pt;
+    page-break-after: avoid;
+  }
+
+  p, ul, ol {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Prevent page breaks inside these elements */
+  img, figure, table, pre, blockquote, .callout {
+    page-break-inside: avoid;
+  }
+
+  /* Links in print */
+  a {
+    color: black !important;
+    text-decoration: underline;
+  }
+
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #666 !important;
+    word-break: break-all;
+  }
+
+  /* Don't show URL for internal links or navigation */
+  a[href^="#"]::after,
+  a[href^="/"]::after {
+    content: "";
+  }
+
+  /* Code blocks in print */
+  pre, code {
+    border: 1px solid #ddd !important;
+    background: #f5f5f5 !important;
+    font-size: 10pt;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+
+  pre {
+    padding: 1em !important;
+    white-space: pre-wrap;
+  }
+
+  /* Images in print */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Print header with URL and date */
+  @page {
+    @top-left {
+      content: "ANTLATT.COM";
+      font-size: 9pt;
+      color: #666 !important;
+    }
+    @top-right {
+      content: attr(data-print-date);
+      font-size: 9pt;
+      color: #666 !important;
+    }
+    @bottom-center {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 9pt;
+      color: #666 !important;
+    }
+  }
+
+  /* Tables */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th, td {
+    border: 1px solid #ddd !important;
+    padding: 8px;
+    text-align: left;
+  }
+
+  th {
+    background: #eee !important;
+    font-weight: bold;
+  }
+
+  /* Cards display as simple blocks */
+  .card {
+    border: 1px solid #ddd !important;
+    padding: 1em;
+    margin-bottom: 1em;
+    transform: none !important;
+  }
+
+  /* Author box in print */
+  .author-box {
+    border-top: 2px solid #ddd !important;
+    padding-top: 1em;
+    margin-top: 2em;
+  }
+
+  /* Hide affiliate disclosures but keep content */
+  .affiliate-note {
+    font-size: 10pt;
+    color: #666 !important;
+  }
+
+  /* Print button on article pages */
+  .print-button {
+    display: inline-flex !important;
+  }
+}
+
+/* Print button styling (hidden on screen, visible in print context setting) */
+.print-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.print-button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+@media print {
+  .print-button {
+    display: none !important;
+  }
+}

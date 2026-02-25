@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-02-24T20:50:01Z",
-  "services": [{"name":"Qdrant","status":"online","responseTime":7,"timestamp":"2026-02-24T20:50:01Z"},{"name":"Redis","status":"offline","responseTime":0,"timestamp":"2026-02-24T20:50:01Z"},{"name":"Ollama","status":"online","responseTime":7,"timestamp":"2026-02-24T20:50:01Z"},{"name":"Website","status":"online","responseTime":6,"timestamp":"2026-02-24T20:50:01Z"}],
+  "timestamp": "2026-02-25T07:00:01Z",
+  "services": [{"name":"Qdrant","status":"online","responseTime":7,"timestamp":"2026-02-25T07:00:01Z"},{"name":"Redis","status":"offline","responseTime":0,"timestamp":"2026-02-25T07:00:01Z"},{"name":"Ollama","status":"online","responseTime":7,"timestamp":"2026-02-25T07:00:01Z"},{"name":"Website","status":"online","responseTime":7,"timestamp":"2026-02-25T07:00:01Z"}],
   "stats": {
     "online": 3,
     "total": 4,

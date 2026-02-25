@@ -18,6 +18,26 @@ export default defineConfig({
   build: {
     assets: 'assets'
   },
+  markdown: {
+    syntaxHighlight: 'shiki',
+    shikiConfig: {
+      theme: 'github-dark',
+      langs: [
+        'bash',
+        'python',
+        'javascript',
+        'typescript',
+        'yaml',
+        'dockerfile',
+        'json',
+        'html',
+        'css',
+        'shell',
+        'sh',
+      ],
+      wrap: true,
+    },
+  },
   image: {
     // Enable responsive images with multiple formats
     service: {

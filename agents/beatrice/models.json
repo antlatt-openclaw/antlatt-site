@@ -1,0 +1,109 @@
+{
+  "providers": {
+    "ollama": {
+      "baseUrl": "http://127.0.0.1:11434/v1",
+      "apiKey": "ollama-local",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "kimi-k2.5:cloud",
+          "name": "kimi-k2.5:cloud",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 131072,
+          "maxTokens": 16384,
+          "api": "openai-completions"
+        },
+        {
+          "id": "glm-5:cloud",
+          "name": "glm-5:cloud",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 131072,
+          "maxTokens": 16384,
+          "api": "openai-completions"
+        },
+        {
+          "id": "qwen3-coder-next:cloud",
+          "name": "qwen3-coder-next:cloud",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 131072,
+          "maxTokens": 16384,
+          "api": "openai-completions"
+        },
+        {
+          "id": "minimax-m2.5:cloud",
+          "name": "minimax-m2.5:cloud",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 131072,
+          "maxTokens": 16384,
+          "api": "openai-completions"
+        }
+      ]
+    },
+    "ollama-remote": {
+      "baseUrl": "http://192.168.1.207:11434/v1",
+      "apiKey": "ollama-local",
+      "auth": "api-key",
+      "api": "openai-completions",
+      "authHeader": false,
+      "models": [
+        {
+          "id": "qwen3:8b",
+          "name": "qwen3:8b",
+          "api": "openai-responses",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 131072,
+          "maxTokens": 32768
+        }
+      ]
+    },
+    "github-copilot": {
+      "baseUrl": "https://api.individual.githubcopilot.com",
+      "models": []
+    }
+  }
+}

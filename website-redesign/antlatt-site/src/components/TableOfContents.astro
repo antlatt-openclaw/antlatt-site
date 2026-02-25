@@ -1,10 +1,11 @@
 ---
-// Table of Contents component for long articles
+// Table of Contents component with section-by-section reading progress
 interface Props {
   headings?: { depth: number; slug: string; text: string }[];
+  articleId?: string;
 }
 
-const { headings = [] } = Astro.props;
+const { headings = [], articleId = '' } = Astro.props;
 
 // Only show h2 and h3 headings
 const tocItems = headings.filter(h => h.depth >= 2 && h.depth <= 3);
@@ -13,22 +14,29 @@ const tocItems = headings.filter(h => h.depth >= 2 && h.depth <= 3);
 {tocItems.length > 2 && (
   <nav class="toc-container hidden lg:block" aria-label="Table of Contents">
     <div class="sticky top-24">
-      <h4 class="text-sm font-semibold text-text-muted uppercase tracking-wider mb-4">
-        On This Page
-      </h4>
-      <ul class="space-y-1 border-l border-border">
+      <div class="toc-header">
+        <h4 class="toc-title">
+          On This Page
+        </h4>
+        <div class="toc-progress">
+          <div class="toc-progress-bar" id="toc-progress-bar"></div>
+        </div>
+        <span class="toc-progress-text" id="toc-progress-text">0 of {tocItems.length} read</span>
+      </div>
+      <ul class="toc-list" data-article-id={articleId}>
         {tocItems.map((heading) => (
-          <li>
+          <li class="toc-item" data-section-id={heading.slug}>
             <a
               href={`#${heading.slug}`}
-              class={`toc-link block py-1.5 pl-4 text-sm transition-all duration-200 rounded-r ${
-                heading.depth === 2 
-                  ? 'text-text-muted hover:text-text' 
-                  : 'text-text-muted/70 hover:text-text pl-6 text-xs'
-              }`}
+              class={`toc-link ${heading.depth === 3 ? 'toc-link-indent' : ''}`}
               data-heading-slug={heading.slug}
             >
-              {heading.text}
+              <span class="toc-checkmark">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
+              <span class="toc-text">{heading.text}</span>
             </a>
           </li>
         ))}
@@ -38,7 +46,69 @@ const tocItems = headings.filter(h => h.depth >= 2 && h.depth <= 3);
 )}
 
 <style>
+  .toc-container {
+    min-width: 200px;
+    max-width: 280px;
+  }
+  
+  .toc-header {
+    margin-bottom: 1rem;
+  }
+  
+  .toc-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    margin: 0 0 0.75rem 0;
+  }
+  
+  .toc-progress {
+    height: 4px;
+    background: var(--color-border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  
+  .toc-progress-bar {
+    height: 100%;
+    background: var(--color-accent);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 2px;
+  }
+  
+  .toc-progress-text {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    display: block;
+  }
+  
+  .toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-left: 1px solid var(--color-border);
+  }
+  
+  .toc-item {
+    position: relative;
+    margin: 0;
+  }
+  
   .toc-link {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    border-radius: 0 0.375rem 0.375rem 0;
+    transition: all 0.2s ease;
     position: relative;
   }
   
@@ -53,6 +123,11 @@ const tocItems = headings.filter(h => h.depth >= 2 && h.depth <= 3);
     transition: background-color 0.2s ease;
   }
   
+  .toc-link:hover {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--color-text);
+  }
+  
   .toc-link.active {
     color: var(--color-accent);
     font-weight: 500;
@@ -63,15 +138,135 @@ const tocItems = headings.filter(h => h.depth >= 2 && h.depth <= 3);
     background: var(--color-accent);
   }
   
-  .toc-link:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.02);
+  .toc-link-indent {
+    padding-left: 1.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .toc-checkmark {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.125rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s ease;
+  }
+  
+  .toc-checkmark svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    color: var(--color-success);
+  }
+  
+  .toc-item.read .toc-checkmark {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  .toc-item.read .toc-text {
+    color: var(--color-text-muted);
+  }
+  
+  .toc-text {
+    flex: 1;
+    min-width: 0;
   }
 </style>
 
 <script>
-  // Smooth scroll to headings when clicking TOC links
-  const tocLinks = document.querySelectorAll('.toc-link');
+  interface ReadingProgress {
+    [articleId: string]: {
+      [sectionId: string]: boolean;
+    };
+  }
   
+  const tocItems = document.querySelectorAll('.toc-item');
+  const tocLinks = document.querySelectorAll('.toc-link');
+  const progressBar = document.getElementById('toc-progress-bar');
+  const progressText = document.getElementById('toc-progress-text');
+  const tocContainer = document.querySelector('.toc-list');
+  const articleId = tocContainer?.getAttribute('data-article-id') || window.location.pathname;
+  
+  // Load saved progress from localStorage
+  function loadProgress(): ReadingProgress {
+    try {
+      const saved = localStorage.getItem('toc-reading-progress');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  }
+  
+  // Save progress to localStorage
+  function saveProgress(progress: ReadingProgress) {
+    try {
+      localStorage.setItem('toc-reading-progress', JSON.stringify(progress));
+    } catch {
+      // localStorage might be full or disabled
+    }
+  }
+  
+  // Update UI for read sections
+  function updateReadState(sectionId: string, isRead: boolean) {
+    const item = document.querySelector(`.toc-item[data-section-id="${sectionId}"]`);
+    if (!item) return;
+    
+    if (isRead) {
+      item.classList.add('read');
+    } else {
+      item.classList.remove('read');
+    }
+  }
+  
+  // Calculate and update progress bar
+  function updateProgressBar() {
+    const totalSections = tocItems.length;
+    const readSections = document.querySelectorAll('.toc-item.read').length;
+    const percentage = (readSections / totalSections) * 100;
+    
+    if (progressBar) {
+      progressBar.style.width = `${percentage}%`;
+    }
+    
+    if (progressText) {
+      progressText.textContent = `${readSections} of ${totalSections} read`;
+    }
+  }
+  
+  // Initialize from saved progress
+  function initializeProgress() {
+    const progress = loadProgress();
+    const articleProgress = progress[articleId] || {};
+    
+    tocItems.forEach((item) => {
+      const sectionId = item.getAttribute('data-section-id');
+      if (sectionId && articleProgress[sectionId]) {
+        item.classList.add('read');
+      }
+    });
+    
+    updateProgressBar();
+  }
+  
+  // Mark section as read
+  function markAsRead(sectionId: string) {
+    const progress = loadProgress();
+    
+    if (!progress[articleId]) {
+      progress[articleId] = {};
+    }
+    
+    progress[articleId][sectionId] = true;
+    saveProgress(progress);
+    updateReadState(sectionId, true);
+    updateProgressBar();
+  }
+  
+  // Smooth scroll to headings
   tocLinks.forEach((link) => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
@@ -79,10 +274,8 @@ const tocItems = headings.filter(h => h.depth >= 2 && h.depth <= 3);
       const heading = document.getElementById(slug || '');
       
       if (heading) {
-        // Update URL hash without jumping
         history.pushState(null, '', `#${slug}`);
         
-        // Smooth scroll with offset for sticky header
         const headerOffset = 100;
         const elementPosition = heading.getBoundingClientRect().top;
         const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
@@ -92,46 +285,57 @@ const tocItems = headings.filter(h => h.depth >= 2 && h.depth <= 3);
           behavior: 'smooth'
         });
         
-        // Manually set active state immediately
         tocLinks.forEach((l) => l.classList.remove('active'));
         link.classList.add('active');
       }
     });
   });
   
-  // Highlight current section on scroll using IntersectionObserver
+  // Track which sections have been read using IntersectionObserver
   const headings = document.querySelectorAll('h2[id], h3[id]');
-  let currentActive: Element | null = null;
+  const readThresholds = new Map<Element, number>();
+  
+  // Track scroll position for each heading
+  headings.forEach((heading) => {
+    readThresholds.set(heading, 0);
+  });
   
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          // Remove active from all links
+          // Update active state
           tocLinks.forEach((link) => link.classList.remove('active'));
           
-          // Add active to matching link
           const matchingLink = document.querySelector(
             `.toc-link[data-heading-slug="${entry.target.id}"]`
           );
           
           if (matchingLink) {
             matchingLink.classList.add('active');
-            currentActive = matchingLink;
+          }
+          
+          // Mark as read when section is 50% visible
+          if (entry.intersectionRatio >= 0.3) {
+            const sectionId = entry.target.id;
+            markAsRead(sectionId);
           }
         }
       });
     },
     {
-      rootMargin: '-100px 0px -70% 0px',
-      threshold: 0
+      rootMargin: '-100px 0px -50% 0px',
+      threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5]
     }
   );
   
   headings.forEach((heading) => observer.observe(heading));
   
+  // Initialize progress on page load
+  initializeProgress();
+  
   // Set first heading as active on page load if at top
-  if (window.scrollY < 200 && tocItems.length > 0) {
+  if (window.scrollY < 200 && tocLinks.length > 0) {
     const firstLink = tocLinks[0];
     if (firstLink) {
       firstLink.classList.add('active');

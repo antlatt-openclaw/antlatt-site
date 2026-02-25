@@ -7,22 +7,25 @@ interface Props {
   tags?: string[];
   date?: string;
   readingTime?: number;
+  blurPlaceholder?: string;
 }
 
-const { title, description, href, image, tags = [], date, readingTime } = Astro.props;
+const { title, description, href, image, tags = [], date, readingTime, blurPlaceholder } = Astro.props;
 ---
 
 <a href={href} class="card group block">
   {image && (
-    <div class="aspect-video overflow-hidden">
+    <div class="card-image-wrapper aspect-video overflow-hidden">
+      <div class="card-image-placeholder" aria-hidden="true"></div>
       <img 
         src={image} 
         alt={title}
-        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        class="card-image w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         loading="lazy"
         decoding="async"
         width="400"
         height="225"
+        onload="this.closest('.card-image-wrapper').classList.add('loaded')"
       />
     </div>
   )}
@@ -67,3 +70,58 @@ const { title, description, href, image, tags = [], date, readingTime } = Astro.
     </div>
   </div>
 </a>
+
+<style>
+  .card-image-wrapper {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .card-image-placeholder {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      var(--color-surface) 0%,
+      var(--color-surface-hover) 30%,
+      var(--color-surface) 50%,
+      var(--color-surface-hover) 70%,
+      var(--color-surface) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    z-index: 1;
+  }
+  
+  .card-image-wrapper.loaded .card-image-placeholder {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .card-image {
+    position: relative;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.3s ease;
+  }
+  
+  .card-image-wrapper.loaded .card-image {
+    opacity: 1;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

@@ -28,6 +28,7 @@ Skills define _how_ tools work. This file is for _your_ specifics — the stuff 
 | SearXNG | localhost:8888 |
 | Kokoro TTS | 192.168.1.204:8880 |
 | Ollama (embeddings) | 192.168.1.207:11434 |
+| ComfyUI | 192.168.1.142:8188 |
 
 ## Skills
 

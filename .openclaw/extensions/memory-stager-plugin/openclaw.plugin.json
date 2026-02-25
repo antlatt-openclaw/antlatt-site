@@ -1,0 +1,38 @@
+{
+  "id": "memory-stager-plugin",
+  "name": "Memory Stager",
+  "description": "Stages conversation turns to Redis for True-Recall memory curation",
+  "version": "1.0.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "redisHost": {
+        "type": "string",
+        "default": "192.168.1.206",
+        "description": "Redis host"
+      },
+      "redisPort": {
+        "type": "number",
+        "default": 6379,
+        "description": "Redis port"
+      },
+      "userId": {
+        "type": "string",
+        "default": "antlatt",
+        "description": "User ID for memory storage"
+      },
+      "enabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enable/disable memory staging"
+      }
+    }
+  },
+  "uiHints": {
+    "redisHost": { "label": "Redis Host" },
+    "redisPort": { "label": "Redis Port" },
+    "userId": { "label": "User ID" },
+    "enabled": { "label": "Enabled" }
+  }
+}

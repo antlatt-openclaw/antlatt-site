@@ -9,6 +9,11 @@ const builds = defineCollection({
     image: z.string().optional(),
     tags: z.array(z.string()).default([]),
     featured: z.boolean().default(false),
+    // Series/Collection support
+    series: z.object({
+      name: z.string(),
+      order: z.number(),
+    }).optional(),
     // Parts for the PartsTable component
     parts: z.array(z.object({
       name: z.string(),
