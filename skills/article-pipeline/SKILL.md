@@ -178,6 +178,17 @@ User: "Write an article about [TOPIC]"
 8. On "deny" → remove from blog/, keep draft
 ```
 
+## Daily Cron (2 Articles)
+
+The 2am cron job produces **two articles per night**:
+
+1. Find 2 distinct topics
+2. Execute full pipeline for article 1 → Vercel
+3. Execute full pipeline for article 2 → Vercel
+4. Notify with both Vercel URLs
+5. User replies "approve 1" or "approve 2" individually
+6. Each approval deploys that specific article to local
+
 ## Approval Words
 
 The following words/phrases indicate approval:
