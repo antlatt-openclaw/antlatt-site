@@ -4,12 +4,14 @@
 // Supports multiple videos as a playlist
 interface VideoItem {
   src: string;
+  poster?: string;  // Poster image for the video
   title?: string;
   description?: string;
 }
 
 interface Props {
   src?: string;  // Single video (backward compatible)
+  poster?: string;  // Single video poster (backward compatible)
   videos?: VideoItem[];  // Multiple videos (playlist)
   title?: string;
   description?: string;
@@ -20,6 +22,7 @@ interface Props {
 
 const { 
   src, 
+  poster,
   videos,
   title = "Site Launch Video", 
   description,
@@ -31,7 +34,7 @@ const {
 // Build video playlist: prefer videos array, fallback to single src
 const videoPlaylist: VideoItem[] = videos && videos.length > 0 
   ? videos 
-  : src ? [{ src }] : [];
+  : src ? [{ src, poster }] : [];
 ---
 
 <section class="launch-video-section relative">
@@ -67,12 +70,13 @@ const videoPlaylist: VideoItem[] = videos && videos.length > 0
           <video 
             id="launch-video"
             src={videoPlaylist[0]?.src || ''}
+            poster={videoPlaylist[0]?.poster || undefined}
             autoplay={autoplay}
             muted
             playsinline
             controls={showControls}
-            preload="auto"
-            class="w-full h-full object-cover"
+            preload="metadata"
+            class="w-full h-full object-cover video-with-poster"
             loop={videoPlaylist.length === 1 && loop}
             data-loop={loop}
           >
@@ -163,6 +167,7 @@ const videoPlaylist: VideoItem[] = videos && videos.length > 0
       if (nextIndex < videoPlaylist.length) {
         currentIndex = nextIndex;
         video.src = videoPlaylist[currentIndex].src;
+        video.poster = videoPlaylist[currentIndex].poster || '';
         video.load();
         video.play().catch(e => console.warn('Video play failed:', e));
         updateIndicators();
@@ -170,6 +175,7 @@ const videoPlaylist: VideoItem[] = videos && videos.length > 0
         // Loop back to first video
         currentIndex = 0;
         video.src = videoPlaylist[currentIndex].src;
+        video.poster = videoPlaylist[currentIndex].poster || '';
         video.load();
         video.play().catch(e => console.warn('Video play failed:', e));
         updateIndicators();
@@ -208,6 +214,7 @@ const videoPlaylist: VideoItem[] = videos && videos.length > 0
         if (index !== currentIndex && index < videoPlaylist.length) {
           currentIndex = index;
           video.src = videoPlaylist[currentIndex].src;
+          video.poster = videoPlaylist[currentIndex].poster || '';
           video.load();
           video.play().catch(e => console.warn('Video play failed:', e));
           updateIndicators();
@@ -225,5 +232,15 @@ const videoPlaylist: VideoItem[] = videos && videos.length > 0
   /* Ensure video doesn't overflow */
   .video-wrapper {
     isolation: isolate;
+  }
+  
+  /* Video poster fallback styling */
+  .video-with-poster {
+    background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-bg) 100%);
+  }
+  
+  /* Ensure poster image covers properly */
+  .video-with-poster::poster {
+    object-fit: cover;
   }
 </style>

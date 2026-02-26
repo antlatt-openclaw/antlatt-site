@@ -3,54 +3,119 @@
 ---
 
 <section class="newsletter" id="newsletter-section">
-  <h3>Get Early Access</h3>
-  <p>First look at new guides, behind-the-scenes build notes, and the occasional homelab disaster that turned into a tutorial.</p>
-  <form id="newsletter-form" class="newsletter-form">
-    <input 
-      type="email" 
-      name="email" 
-      id="newsletter-email"
-      placeholder="your@email.com" 
-      required 
-    />
-    <button type="submit" id="newsletter-submit">
-      <span class="btn-text">Subscribe</span>
-      <span class="btn-loading hidden">
-        <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-      </span>
-    </button>
-  </form>
-  <div id="newsletter-message" class="newsletter-message hidden"></div>
+  <!-- Gradient accent border -->
+  <div class="newsletter-accent" aria-hidden="true"></div>
+  
+  <div class="newsletter-content">
+    <div class="newsletter-icon" aria-hidden="true">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    </div>
+    
+    <h3>Get Early Access</h3>
+    <p>First look at new guides, behind-the-scenes build notes, and the occasional homelab disaster that turned into a tutorial.</p>
+    
+    <form id="newsletter-form" class="newsletter-form">
+      <input 
+        type="email" 
+        name="email" 
+        id="newsletter-email"
+        placeholder="your@email.com" 
+        required 
+      />
+      <button type="submit" id="newsletter-submit">
+        <span class="btn-text">Subscribe</span>
+        <span class="btn-loading hidden">
+          <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </span>
+      </button>
+    </form>
+    
+    <div id="newsletter-message" class="newsletter-message hidden"></div>
+    
+    <!-- Social proof -->
+    <p class="newsletter-proof">
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </svg>
+      Join other builders & tinkerers
+    </p>
+  </div>
 </section>
 
 <style>
   .newsletter {
-    padding: 2rem;
+    position: relative;
+    padding: 2.5rem;
     border-radius: 1rem;
-    background: var(--surface, #1a1a2e);
+    background: linear-gradient(135deg, var(--surface, #1a1a2e) 0%, rgba(99, 102, 241, 0.05) 100%);
     border: 1px solid var(--border, #2a2a3e);
     text-align: center;
     margin: 2rem 0;
+    overflow: hidden;
   }
+  
+  .newsletter-accent {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #dc2626 0%, #6366f1 50%, #22d3ee 100%);
+    border-radius: 4px 0 0 4px;
+  }
+  
+  .newsletter::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(220, 38, 38, 0.3), rgba(99, 102, 241, 0.3), transparent);
+  }
+  
+  .newsletter-content {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .newsletter-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    margin-bottom: 1rem;
+    color: var(--accent, #6366f1);
+  }
+  
   .newsletter h3 {
     font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
     color: var(--text, #fff);
   }
+  
   .newsletter p {
     color: var(--text-muted, #888);
     margin-bottom: 1.5rem;
   }
+  
   .newsletter-form {
     display: flex;
     gap: 0.5rem;
     max-width: 400px;
     margin: 0 auto;
   }
+  
   .newsletter-form input {
     flex: 1;
     padding: 0.75rem 1rem;
@@ -59,47 +124,107 @@
     background: var(--bg, #0d0d1a);
     color: var(--text, #fff);
     font-size: 1rem;
+    transition: all 0.2s ease;
   }
+  
   .newsletter-form input::placeholder {
     color: var(--text-muted, #888);
   }
+  
   .newsletter-form input:focus {
     outline: none;
-    border-color: var(--accent, #a78bfa);
+    border-color: var(--accent, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }
+  
   .newsletter-form input.input-error {
-    border-color: var(--color-warning, #f59e0b);
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
   }
+  
   .newsletter-form button {
+    position: relative;
     padding: 0.75rem 1.5rem;
     border-radius: 0.5rem;
     border: none;
-    background: var(--accent, #a78bfa);
-    color: #000;
+    background: linear-gradient(135deg, #dc2626 0%, #6366f1 100%);
+    color: #fff;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     min-width: 120px;
+    overflow: hidden;
   }
+  
+  .newsletter-form button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #ef4444 0%, #818cf8 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .newsletter-form button:hover:not(:disabled)::before {
+    opacity: 1;
+  }
+  
   .newsletter-form button:hover:not(:disabled) {
-    opacity: 0.9;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
   }
+  
   .newsletter-form button:disabled {
     opacity: 0.7;
     cursor: not-allowed;
   }
+  
+  .newsletter-form button .btn-text,
+  .newsletter-form button .btn-loading {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Pulse animation for submit button */
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+  
+  .newsletter-form button::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #dc2626 0%, #6366f1 100%);
+    opacity: 0;
+    z-index: -1;
+    animation: pulse-ring 2s ease-out infinite;
+  }
+  
+  .newsletter:focus-within button::after {
+    opacity: 0.5;
+  }
+  
   .btn-loading {
     display: flex;
     align-items: center;
     justify-content: center;
   }
+  
   .btn-loading.hidden, .btn-text.hidden {
     display: none;
   }
+  
   .newsletter-message {
     margin-top: 1rem;
     padding: 0.75rem 1rem;
@@ -109,23 +234,47 @@
     margin-left: auto;
     margin-right: auto;
   }
+  
   .newsletter-message.hidden {
     display: none;
   }
+  
   .newsletter-message.success {
     background: rgba(34, 197, 94, 0.1);
     border: 1px solid rgba(34, 197, 94, 0.3);
     color: #22c55e;
   }
+  
   .newsletter-message.error {
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.3);
     color: #ef4444;
   }
+  
+  .newsletter-proof {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    font-size: 0.75rem;
+    color: var(--text-muted, #888);
+    opacity: 0.7;
+  }
+  
+  .newsletter-proof svg {
+    color: #22c55e;
+  }
+  
   @media (max-width: 480px) {
+    .newsletter {
+      padding: 2rem 1.5rem;
+    }
+    
     .newsletter-form {
       flex-direction: column;
     }
+    
     .newsletter-form button {
       width: 100%;
     }

@@ -18,9 +18,10 @@ const photos: Photo[] = [
 ];
 ---
 
-<div class="photo-slideshow-container">
-  <!-- No-JS fallback: show first image only -->
-  <noscript>
+<div class="photo-slideshow-wrapper">
+  <div class="photo-slideshow-container">
+    <!-- No-JS fallback: show first image only -->
+    <noscript>
     <div class="slideshow-fallback">
       <img 
         src={photos[0].src} 
@@ -86,19 +87,75 @@ const photos: Photo[] = [
       </svg>
     </button>
   </div>
+  </div>
 </div>
 
 <style>
-  .photo-slideshow-container {
+  /* Premium framed slideshow container with gradient border */
+  .photo-slideshow-wrapper {
     position: relative;
     width: 100%;
     max-width: 450px;
     margin: 0 auto;
+  }
+  
+  /* Gradient border effect using pseudo-element */
+  .photo-slideshow-wrapper::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 1.125rem;
+    background: linear-gradient(135deg, #dc2626 0%, #6366f1 50%, #dc2626 100%);
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+    z-index: -1;
+    opacity: 0.8;
+  }
+  
+  .photo-slideshow-wrapper::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 1.125rem;
+    background: linear-gradient(135deg, #dc2626 0%, #6366f1 50%, #dc2626 100%);
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+    z-index: -2;
+    opacity: 0.3;
+    filter: blur(20px);
+  }
+  
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .photo-slideshow-container {
+    position: relative;
+    width: 100%;
     aspect-ratio: 3 / 4;
     border-radius: 1rem;
     overflow: hidden;
     background: var(--bg-secondary, #1a1a2e);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: 
+      0 0 0 1px rgba(99, 102, 241, 0.1),
+      0 4px 6px -1px rgba(0, 0, 0, 0.2),
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  /* Inner shadow for depth */
+  .photo-slideshow-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 
+      inset 0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+    pointer-events: none;
+    z-index: 5;
   }
   
   .slideshow-fallback,
@@ -154,7 +211,8 @@ const photos: Photo[] = [
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.5);
-    border: none;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 50%;
     color: white;
     cursor: pointer;
@@ -169,12 +227,13 @@ const photos: Photo[] = [
   }
   
   .slideshow-nav:hover {
-    background: rgba(0, 0, 0, 0.7);
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.8) 0%, rgba(99, 102, 241, 0.8) 100%);
+    border-color: rgba(255, 255, 255, 0.2);
     transform: translateY(-50%) scale(1.1);
   }
   
   .slideshow-nav:focus {
-    outline: 2px solid var(--accent, #60a5fa);
+    outline: 2px solid var(--accent, #6366f1);
     outline-offset: 2px;
     opacity: 1;
   }
@@ -213,12 +272,13 @@ const photos: Photo[] = [
   }
   
   .slideshow-dot.active {
-    background: white;
+    background: linear-gradient(135deg, #dc2626 0%, #6366f1 100%);
     transform: scale(1.25);
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.5);
   }
   
   .slideshow-dot:focus {
-    outline: 2px solid var(--accent, #60a5fa);
+    outline: 2px solid var(--accent, #6366f1);
     outline-offset: 2px;
   }
   
@@ -232,21 +292,26 @@ const photos: Photo[] = [
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.5);
-    border: none;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 50%;
     color: white;
     cursor: pointer;
     z-index: 10;
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: all 0.2s ease;
   }
   
   .slideshow-wrapper:hover .slideshow-pause,
   .slideshow-wrapper:focus-within .slideshow-pause,
   .slideshow-pause:focus {
     opacity: 1;
-    outline: 2px solid var(--accent, #60a5fa);
+    outline: 2px solid var(--accent, #6366f1);
     outline-offset: 2px;
+  }
+  
+  .slideshow-pause:hover {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.8) 0%, rgba(99, 102, 241, 0.8) 100%);
   }
   
   .slideshow-pause svg {
@@ -254,10 +319,54 @@ const photos: Photo[] = [
     height: 14px;
   }
   
+  /* Reflection effect */
+  .slideshow-reflection {
+    position: relative;
+    width: 100%;
+    max-width: 450px;
+    margin: 0 auto;
+    margin-top: -40px;
+    padding-top: 40px;
+  }
+  
+  .slideshow-reflection::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 2px;
+    right: 2px;
+    height: 40%;
+    background: linear-gradient(to bottom, rgba(10, 10, 15, 0.8), transparent);
+    pointer-events: none;
+    border-radius: 0 0 1rem 1rem;
+    opacity: 0.3;
+  }
+  
+  .reflection-image {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    border-radius: 0 0 1rem 1rem;
+    background: inherit;
+    transform: scaleY(-1);
+    opacity: 0.15;
+    filter: blur(2px);
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,0.2), transparent 60%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.2), transparent 60%);
+  }
+  
   /* Mobile adjustments */
   @media (max-width: 640px) {
-    .photo-slideshow-container {
+    .photo-slideshow-wrapper {
       max-width: 100%;
+    }
+    
+    .photo-slideshow-wrapper::before,
+    .photo-slideshow-wrapper::after {
+      inset: -1px;
+      border-radius: 0.875rem;
+    }
+    
+    .photo-slideshow-container {
       border-radius: 0.75rem;
     }
     

@@ -70,12 +70,12 @@ const pageUrl = Astro.url.href.replace(/([^:]\/)\/+/g, '$1');
             ANTLATT<span class="text-accent">.COM</span>
           </a>
           <div class="hidden sm:flex items-center gap-6">
-            <a href="/" class="text-text-muted hover:text-text transition-colors">Home</a>
-            <a href="/articles" class="text-text-muted hover:text-text transition-colors">Articles</a>
-            <a href="/lab" class="text-text-muted hover:text-text transition-colors">Lab</a>
-            <a href="/deepfakes" class="text-text-muted hover:text-text transition-colors">DeepFakes</a>
-            <a href="/about" class="text-text-muted hover:text-text transition-colors">About</a>
-            <a href="/contact" class="text-text-muted hover:text-text transition-colors">Contact</a>
+            <a href="/" class="nav-link text-text-muted hover:text-text transition-colors">Home</a>
+            <a href="/articles" class="nav-link text-text-muted hover:text-text transition-colors">Articles</a>
+            <a href="/lab" class="nav-link text-text-muted hover:text-text transition-colors">Lab</a>
+            <a href="/deepfakes" class="nav-link text-text-muted hover:text-text transition-colors">DeepFakes</a>
+            <a href="/about" class="nav-link text-text-muted hover:text-text transition-colors">About</a>
+            <a href="/contact" class="nav-link text-text-muted hover:text-text transition-colors">Contact</a>
             <a href="/rss.xml" class="text-text-muted hover:text-accent transition-colors" aria-label="RSS Feed" title="RSS Feed">
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1Z"/>
@@ -110,12 +110,12 @@ const pageUrl = Astro.url.href.replace(/([^:]\/)\/+/g, '$1');
       <!-- Mobile menu -->
       <div id="mobile-menu" class="hidden sm:hidden border-t border-border">
         <div class="px-4 py-3 space-y-2">
-          <a href="/" class="block text-text-muted hover:text-text transition-colors py-2">Home</a>
-          <a href="/articles" class="block text-text-muted hover:text-text transition-colors py-2">Articles</a>
-          <a href="/lab" class="block text-text-muted hover:text-text transition-colors py-2">Lab</a>
-          <a href="/deepfakes" class="block text-text-muted hover:text-text transition-colors py-2">DeepFakes</a>
-          <a href="/about" class="block text-text-muted hover:text-text transition-colors py-2">About</a>
-          <a href="/contact" class="block text-text-muted hover:text-text transition-colors py-2">Contact</a>
+          <a href="/" class="nav-link-mobile block text-text-muted hover:text-text transition-colors py-2">Home</a>
+          <a href="/articles" class="nav-link-mobile block text-text-muted hover:text-text transition-colors py-2">Articles</a>
+          <a href="/lab" class="nav-link-mobile block text-text-muted hover:text-text transition-colors py-2">Lab</a>
+          <a href="/deepfakes" class="nav-link-mobile block text-text-muted hover:text-text transition-colors py-2">DeepFakes</a>
+          <a href="/about" class="nav-link-mobile block text-text-muted hover:text-text transition-colors py-2">About</a>
+          <a href="/contact" class="nav-link-mobile block text-text-muted hover:text-text transition-colors py-2">Contact</a>
           <a href="/rss.xml" class="flex items-center gap-2 text-text-muted hover:text-accent transition-colors py-2">
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1Z"/>
@@ -185,6 +185,17 @@ const pageUrl = Astro.url.href.replace(/([^:]\/)\/+/g, '$1');
         searchModal?.classList.add('showing');
         document.body.style.overflow = 'hidden';
         (document.getElementById('search-input') as HTMLInputElement)?.focus();
+      });
+      
+      // Highlight active navigation link
+      const currentPath = window.location.pathname;
+      const navLinks = document.querySelectorAll('.nav-link, .nav-link-mobile');
+      
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href === currentPath || (currentPath.startsWith(href || '') && href !== '/')) {
+          link.classList.add('active');
+        }
       });
     </script>
   </body>

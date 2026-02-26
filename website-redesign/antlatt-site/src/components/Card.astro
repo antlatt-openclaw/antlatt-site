@@ -83,16 +83,128 @@ const typeClass = isBuild ? 'build-tag' : isBlog ? 'blog-tag' : '';
     overflow: hidden;
   }
   
+  /* Enhanced card hover effects */
+  .card {
+    position: relative;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, 
+      rgba(99, 102, 241, 0) 0%, 
+      rgba(99, 102, 241, 0.05) 50%,
+      rgba(220, 38, 38, 0.05) 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1;
+  }
+  
+  .card:hover {
+    border-color: var(--color-accent);
+    transform: translateY(-4px);
+    box-shadow: 
+      0 8px 30px rgba(99, 102, 241, 0.15),
+      0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .card:hover::before {
+    opacity: 1;
+  }
+  
+  /* Image hover effects */
+  .card .aspect-video {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .card .aspect-video::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, 
+      rgba(99, 102, 241, 0.2) 0%, 
+      rgba(220, 38, 38, 0.15) 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  
+  .card:hover .aspect-video::after {
+    opacity: 1;
+  }
+  
+  .card:hover img {
+    transform: scale(1.08);
+  }
+  
+  .card img {
+    transition: transform 0.5s ease;
+  }
+  
+  /* Read more indicator */
+  .card::after {
+    content: 'Read →';
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-accent);
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: all 0.3s ease;
+    z-index: 2;
+  }
+  
+  .card:hover::after {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  
+  /* Tag styling with gradient */
+  .tag {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  
   .tag.build-tag {
-    background: linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
-    border: 1px solid rgba(52, 211, 153, 0.3);
-    color: #34d399;
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(220, 38, 38, 0.1) 100%);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    color: #f87171;
+    box-shadow: 0 0 10px rgba(220, 38, 38, 0.1);
+  }
+  
+  .tag.build-tag:hover {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.3) 0%, rgba(220, 38, 38, 0.15) 100%);
+    box-shadow: 0 0 15px rgba(220, 38, 38, 0.2);
   }
   
   .tag.blog-tag {
-    background: linear-gradient(135deg, rgba(167, 139, 250, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
-    border: 1px solid rgba(167, 139, 250, 0.3);
-    color: #a78bfa;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    color: #a5b4fc;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);
+  }
+  
+  .tag.blog-tag:hover {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(99, 102, 241, 0.15) 100%);
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
   }
   
   .tag-icon {

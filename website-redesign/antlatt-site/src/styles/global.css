@@ -67,6 +67,8 @@
   --color-text-muted: #8888a0;
   --color-accent: #6366f1;
   --color-accent-hover: #818cf8;
+  --color-accent-red: #dc2626;
+  --color-accent-red-hover: #ef4444;
   --color-code: #22d3ee;
   --color-success: #22c55e;
   --color-warning: #f59e0b;
@@ -170,6 +172,7 @@ pre code {
   color: white;
 }
 
+/* Secondary button with red hover accent */
 .btn-secondary {
   background-color: transparent;
   border: 1px solid var(--color-border);
@@ -177,8 +180,23 @@ pre code {
 }
 
 .btn-secondary:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--color-accent-red);
+  color: var(--color-accent-red);
+}
+
+/* CTA button with gradient */
+.btn-cta {
+  background: linear-gradient(135deg, var(--color-accent-red) 0%, var(--color-accent) 100%);
+  color: white;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.25);
+  transition: all 0.3s ease;
+}
+
+.btn-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.35);
 }
 
 /* Tag */
@@ -189,6 +207,36 @@ pre code {
   border-radius: 9999px;
   font-size: 0.75rem;
   color: var(--color-text-muted);
+}
+
+/* Navigation links */
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #dc2626 0%, #6366f1 100%);
+  border-radius: 1px;
+  transition: width 0.2s ease;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 100%;
+}
+
+.nav-link.active {
+  color: var(--color-text);
+}
+
+.nav-link-mobile.active {
+  color: var(--color-accent-red);
 }
 
 /* Prose (article content) */

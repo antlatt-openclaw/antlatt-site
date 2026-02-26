@@ -40,35 +40,110 @@ const videos: Video[] = [
   { title: 'Crom', file: 'crom', description: 'Conan the Barbarian scene', category: 'Movies' },
 ];
 
-// Get unique categories
-const categories = [...new Set(videos.map(v => v.category))].filter(Boolean);
+// Videos array - categories are now hardcoded in the filter buttons
 ---
 
 <BaseLayout title="DeepFakes | ANTLATT.COM" description="AI-powered deepfake videos - face swaps, movie recasts, and creative experiments.">
-  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    <h1 class="text-4xl font-bold mb-4 gradient-text">DeepFakes</h1>
-    <p class="text-text-muted text-lg mb-8">
-      When I'm not building homelabs or configuring Docker containers, I experiment with AI-generated media. 
-      These face swaps and movie recasts started as a curiosity about neural networks — how they learn faces, 
-      how they map expressions. What began as tech exploration turned into a creative side project.
-    </p>
-
-    <div class="p-4 rounded-lg bg-surface border border-border mb-12">
-      <p class="text-text-muted text-sm">
-        ⚠️ <strong>Note:</strong> These videos are for entertainment purposes only. 
-        Deepfakes should never be used for misinformation, fraud, or harassment. 
-        Always clearly label synthetic media.
-      </p>
+  <!-- Hero Section -->
+  <section class="deepfakes-hero relative overflow-hidden">
+    <!-- Animated gradient background -->
+    <div class="hero-bg"></div>
+    
+    <!-- Noise texture overlay -->
+    <div class="noise-overlay"></div>
+    
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <!-- Hero content -->
+        <div class="hero-content">
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-red/10 border border-accent-red/30 text-accent-red text-sm font-medium mb-6">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            AI-Powered Video
+          </div>
+          
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+            <span class="hero-gradient-text">DeepFakes</span>
+          </h1>
+          
+          <p class="text-text-muted text-lg sm:text-xl mb-6 leading-relaxed">
+            When I'm not building homelabs or configuring Docker containers, I experiment with AI-generated media. 
+            Face swaps, movie recasts, and creative explorations into neural networks.
+          </p>
+          
+          <p class="text-text-muted text-base mb-8">
+            What began as tech exploration turned into a creative side project — 
+            understanding how AI learns faces and maps expressions.
+          </p>
+          
+          <!-- Tech stack badges -->
+          <div class="flex flex-wrap gap-2 mb-8">
+            <span class="tech-badge">DeepFaceLab</span>
+            <span class="tech-badge">Python</span>
+            <span class="tech-badge">CUDA</span>
+            <span class="tech-badge">GPU Hours</span>
+          </div>
+          
+          <!-- Disclaimer -->
+          <div class="disclaimer-box">
+            <svg class="w-5 h-5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p class="text-amber-200/80 text-sm">
+              <strong class="text-amber-300">For entertainment only.</strong> 
+              Deepfakes should never be used for misinformation, fraud, or harassment.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Showcase video -->
+        <div class="hero-showcase">
+          <div class="showcase-frame">
+            <div class="showcase-glow"></div>
+            <div class="showcase-content">
+              <video 
+                controls 
+                preload="none"
+                poster="/images/deepfakes/godf.jpg"
+                class="w-full h-full object-cover rounded-lg"
+                aria-label="Featured DeepFake Video"
+              >
+                <source src="/videos/godf.mp4" type="video/mp4" />
+              </video>
+              <div class="showcase-label">
+                <span class="text-xs font-medium text-white/60">Featured</span>
+                <span class="text-sm font-semibold text-white">The Godfather</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+  </section>
+  
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
 
     <!-- Category Filter -->
     <div class="category-filters flex flex-wrap gap-2 mb-8">
-      <button class="category-btn active" data-category="all">All ({videos.length})</button>
-      {categories.map(cat => (
-        <button class="category-btn" data-category={cat}>
-          {cat} ({videos.filter(v => v.category === cat).length})
-        </button>
-      ))}
+      <button class="category-btn active" data-category="all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+        All ({videos.length})
+      </button>
+      <button class="category-btn" data-category="Movies">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+        </svg>
+        Movies ({videos.filter(v => v.category === 'Movies').length})
+      </button>
+      <button class="category-btn" data-category="Experiments">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+        </svg>
+        Experiments ({videos.filter(v => v.category === 'Experiments').length})
+      </button>
     </div>
 
     <!-- Video Grid -->
@@ -121,12 +196,148 @@ const categories = [...new Set(videos.map(v => v.category))].filter(Boolean);
 </BaseLayout>
 
 <style>
+  /* Hero Section Styles */
+  .deepfakes-hero {
+    position: relative;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 50%, rgba(220, 38, 38, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(220, 38, 38, 0.05) 0%, transparent 40%);
+    animation: hero-pulse 15s ease-in-out infinite;
+  }
+  
+  @keyframes hero-pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  
+  .noise-overlay {
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+  
+  .hero-gradient-text {
+    background: linear-gradient(135deg, #dc2626 0%, #6366f1 50%, #22d3ee 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    background-size: 200% 200%;
+    animation: gradient-flow 8s ease infinite;
+  }
+  
+  @keyframes gradient-flow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .tech-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+  }
+  
+  .tech-badge:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  
+  .disclaimer-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 0.75rem;
+  }
+  
+  /* Showcase Frame */
+  .hero-showcase {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .showcase-frame {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    aspect-ratio: 16 / 10;
+    border-radius: 1rem;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  
+  .showcase-glow {
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(135deg, #dc2626 0%, #6366f1 100%);
+    border-radius: 1.125rem;
+    z-index: -1;
+    opacity: 0.6;
+    filter: blur(15px);
+    animation: showcase-glow 4s ease-in-out infinite alternate;
+  }
+  
+  @keyframes showcase-glow {
+    0% { opacity: 0.4; transform: scale(1); }
+    100% { opacity: 0.7; transform: scale(1.02); }
+  }
+  
+  .showcase-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.3),
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  .showcase-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  /* Category Filter */
   .category-filters {
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border, #2a2a3e);
     margin-bottom: 2rem;
   }
+  
   .category-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     padding: 0.5rem 1rem;
     border-radius: 9999px;
     font-size: 0.875rem;
@@ -137,17 +348,52 @@ const categories = [...new Set(videos.map(v => v.category))].filter(Boolean);
     cursor: pointer;
     transition: all 0.2s;
   }
+  
   .category-btn:hover {
     border-color: var(--accent, #6366f1);
     color: var(--text, #fff);
   }
+  
   .category-btn.active {
-    background: var(--accent, #6366f1);
-    border-color: var(--accent, #6366f1);
+    background: linear-gradient(135deg, #dc2626 0%, #6366f1 100%);
+    border-color: transparent;
     color: #fff;
+    box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
   }
+  
+  .category-btn svg {
+    width: 1rem;
+    height: 1rem;
+  }
+  
   .video-card.hidden {
     display: none;
+  }
+  
+  /* Mobile adjustments */
+  @media (max-width: 1024px) {
+    .hero-showcase {
+      order: -1;
+    }
+    
+    .showcase-frame {
+      max-width: 100%;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .deepfakes-hero {
+      padding: 1rem;
+    }
+    
+    .hero-content h1 {
+      font-size: 2.5rem;
+    }
+    
+    .tech-badge {
+      font-size: 0.625rem;
+      padding: 0.25rem 0.5rem;
+    }
   }
 </style>
 
