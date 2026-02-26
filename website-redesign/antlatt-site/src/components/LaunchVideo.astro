@@ -1,0 +1,229 @@
+---
+// Launch Video component - promotional video showcase
+// Features autoplay, muted, with optional poster and caption
+// Supports multiple videos as a playlist
+interface VideoItem {
+  src: string;
+  title?: string;
+  description?: string;
+}
+
+interface Props {
+  src?: string;  // Single video (backward compatible)
+  videos?: VideoItem[];  // Multiple videos (playlist)
+  title?: string;
+  description?: string;
+  autoplay?: boolean;
+  loop?: boolean;
+  showControls?: boolean;
+}
+
+const { 
+  src, 
+  videos,
+  title = "Site Launch Video", 
+  description,
+  autoplay = true,
+  loop = true,
+  showControls = true
+} = Astro.props;
+
+// Build video playlist: prefer videos array, fallback to single src
+const videoPlaylist: VideoItem[] = videos && videos.length > 0 
+  ? videos 
+  : src ? [{ src }] : [];
+---
+
+<section class="launch-video-section relative">
+  <!-- Ambient glow effect behind video -->
+  <div class="absolute inset-0 pointer-events-none overflow-hidden">
+    <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[60%] bg-accent/15 blur-[100px] rounded-full"></div>
+  </div>
+  
+  <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+    <!-- Section header -->
+    {title && (
+      <div class="text-center mb-8">
+        <h2 class="text-2xl sm:text-3xl font-bold mb-2">
+          <span class="gradient-text">{title}</span>
+        </h2>
+        {description && (
+          <p class="text-text-muted text-lg max-w-2xl mx-auto">
+            {description}
+          </p>
+        )}
+      </div>
+    )}
+    
+    <!-- Video container with enhanced styling -->
+    <div class="video-wrapper relative group">
+      <!-- Outer glow/border effect -->
+      <div class="absolute -inset-1 bg-gradient-to-r from-accent/30 via-code/20 to-accent/30 rounded-2xl blur-sm opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
+      
+      <!-- Video frame -->
+      <div class="relative rounded-xl overflow-hidden border border-border bg-surface shadow-2xl shadow-accent/10">
+        <!-- Video element -->
+        <div class="aspect-video relative">
+          <video 
+            id="launch-video"
+            src={videoPlaylist[0]?.src || ''}
+            autoplay={autoplay}
+            muted
+            playsinline
+            controls={showControls}
+            preload="auto"
+            class="w-full h-full object-cover"
+            loop={videoPlaylist.length === 1 && loop}
+            data-loop={loop}
+          >
+            Your browser does not support the video tag.
+          </video>
+          
+          <!-- Play/Pause overlay (shown when paused) -->
+          <div id="video-overlay" class="absolute inset-0 flex items-center justify-center bg-bg/50 opacity-0 pointer-events-none transition-opacity duration-300">
+            <button 
+              id="play-button"
+              class="w-20 h-20 rounded-full bg-accent/90 hover:bg-accent flex items-center justify-center transition-all duration-300 hover:scale-110"
+              aria-label="Play video"
+            >
+              <svg class="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </button>
+          </div>
+          
+          <!-- Video progress indicator for playlist -->
+          {videoPlaylist.length > 1 && (
+            <div class="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+              {videoPlaylist.map((video, index) => (
+                <button 
+                  class="video-indicator w-3 h-3 rounded-full transition-all duration-300"
+                  data-index={index}
+                  aria-label={`Play video ${index + 1}`}
+                >
+                  <span class="block w-full h-full rounded-full bg-white/30 hover:bg-white/60 transition-colors" style={index === 0 ? 'background: var(--color-accent);' : ''}></span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Optional: Scroll indicator -->
+    <div class="flex justify-center mt-8">
+      <a href="#most-recent" class="text-text-muted hover:text-accent transition-colors flex flex-col items-center gap-1 text-sm">
+        <span>Latest Content</span>
+        <svg class="w-5 h-5 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<script define:vars={{ videoPlaylist }}>
+  // Video play/pause overlay handling & playlist support
+  const video = document.getElementById('launch-video');
+  const overlay = document.getElementById('video-overlay');
+  const playButton = document.getElementById('play-button');
+  const indicators = document.querySelectorAll('.video-indicator');
+  
+  // Playlist state
+  let currentIndex = 0;
+  const shouldLoop = video && video.dataset ? video.dataset.loop !== 'false' : true;
+  
+  if (video && overlay && playButton) {
+    // Show overlay when video is paused
+    const updateOverlay = () => {
+      if (video.paused) {
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
+        overlay.classList.add('opacity-100', 'pointer-events-auto');
+      } else {
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+        overlay.classList.remove('opacity-100', 'pointer-events-auto');
+      }
+    };
+    
+    // Update video indicator dots
+    const updateIndicators = () => {
+      indicators.forEach((ind, idx) => {
+        const dot = ind.querySelector('span');
+        if (dot) {
+          dot.style.background = idx === currentIndex ? 'var(--color-accent)' : 'rgba(255,255,255,0.3)';
+        }
+      });
+    };
+    
+    // Play next video in playlist
+    const playNext = () => {
+      if (videoPlaylist.length <= 1) return;
+      
+      const nextIndex = currentIndex + 1;
+      if (nextIndex < videoPlaylist.length) {
+        currentIndex = nextIndex;
+        video.src = videoPlaylist[currentIndex].src;
+        video.load();
+        video.play().catch(e => console.warn('Video play failed:', e));
+        updateIndicators();
+      } else if (shouldLoop) {
+        // Loop back to first video
+        currentIndex = 0;
+        video.src = videoPlaylist[currentIndex].src;
+        video.load();
+        video.play().catch(e => console.warn('Video play failed:', e));
+        updateIndicators();
+      }
+    };
+    
+    // Initial state check
+    updateOverlay();
+    
+    // Listen for play/pause events
+    video.addEventListener('play', updateOverlay);
+    video.addEventListener('pause', updateOverlay);
+    
+    // When video ends, play next in playlist
+    video.addEventListener('ended', playNext);
+    
+    // Click handler for overlay play button
+    playButton.addEventListener('click', () => {
+      video.play();
+    });
+    
+    // Click on video to toggle play/pause
+    video.addEventListener('click', () => {
+      if (video.paused) {
+        video.play();
+      } else {
+        video.pause();
+      }
+    });
+    
+    // Indicator click handlers
+    indicators.forEach((ind) => {
+      ind.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const index = parseInt(ind.dataset.index || '0', 10);
+        if (index !== currentIndex && index < videoPlaylist.length) {
+          currentIndex = index;
+          video.src = videoPlaylist[currentIndex].src;
+          video.load();
+          video.play().catch(e => console.warn('Video play failed:', e));
+          updateIndicators();
+        }
+      });
+    });
+  }
+</script>
+
+<style>
+  .launch-video-section {
+    background: linear-gradient(180deg, transparent 0%, var(--color-bg) 100%);
+  }
+  
+  /* Ensure video doesn't overflow */
+  .video-wrapper {
+    isolation: isolate;
+  }
+</style>

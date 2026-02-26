@@ -2,56 +2,73 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Card from '../components/Card.astro';
 import Hero from '../components/Hero.astro';
+import LaunchVideo from '../components/LaunchVideo.astro';
 import Newsletter from '../components/Newsletter.astro';
 import CurrentProjects from '../components/CurrentProjects.astro';
+import { getCollection } from 'astro:content';
 
-const builds = [
-  {
-    title: '10G 20TB Plex NAS',
-    description: 'Build a high-performance media server with 10G networking and massive storage.',
-    href: '/builds/nas-build',
-    image: '/images/builds/nas/nasthumb.webp',
-    tags: ['NAS', 'Plex', 'Storage'],
-    date: '2024-03-15'
-  },
-  {
-    title: 'Ultimate Arcade',
-    description: 'Mod an Arcade1Up machine to play any console game from Atari to PS3.',
-    href: '/builds/arcade-build',
-    image: '/images/builds/arcade/arcadethumb.webp',
-    tags: ['Arcade', 'Retro', 'Gaming'],
-    date: '2024-02-20'
-  },
-  {
-    title: 'Server Rack Build',
-    description: 'One rack to rule them all — the ultimate homelab infrastructure.',
-    href: '/builds/server-rack',
-    image: '/images/builds/rack/rackthumb.png',
-    tags: ['Server', 'Homelab', 'Unraid'],
-    date: '2024-01-10'
-  },
-  {
-    title: 'Pi-hole Network Ad Blocker',
-    description: 'Whole-network ad blocking on a $5 Raspberry Pi Zero.',
-    href: '/builds/pihole',
-    image: '/images/builds/pihole/pihole.png',
-    tags: ['Raspberry Pi', 'Network', 'Privacy'],
-    date: '2023-11-05'
-  }
+// Fetch all content collections
+const builds = await getCollection('builds');
+const blogPosts = await getCollection('blog', ({ data }) => !data.draft);
+
+// Helper to calculate reading time
+function calculateReadingTime(body: string | undefined): number {
+  if (!body) return 0;
+  const wordsPerMinute = 225;
+  const plainText = body.replace(/[#*`\[\]]/g, '').trim();
+  const wordCount = plainText.split(/\s+/).filter(w => w.length > 0).length;
+  return Math.ceil(wordCount / wordsPerMinute);
+}
+
+// Normalize all articles with type and reading time
+const allArticles = [
+  ...builds.map(build => ({
+    type: 'Build' as const,
+    slug: build.slug,
+    data: build.data,
+    body: build.body,
+    href: `/builds/${build.slug}`,
+    readingTime: calculateReadingTime(build.body)
+  })),
+  ...blogPosts.map(post => ({
+    type: 'Blog' as const,
+    slug: post.slug,
+    data: post.data,
+    body: post.body,
+    href: `/blog/${post.slug}`,
+    readingTime: calculateReadingTime(post.body)
+  }))
 ];
+
+// Sort by date (newest first) and get the 6 most recent
+const recentArticles = allArticles
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 6);
 ---
 
 <BaseLayout>
   <Hero 
-    title="TECH STUFF & GENERAL GEEKERY"
-    subtitle="Because I have way too much free time. Builds, projects, and whatever else catches my attention."
+    title="Self-Hosted AI, Homelabs & DIY Builds"
+    subtitle="Practical guides for building real infrastructure. NAS servers, AI assistants, arcade cabinets — everything I wish I'd found in one place."
+    backgroundImage="/images/hero/hero-03.webp"
   />
 
-  <!-- Builds Section -->
-  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+  <!-- Launch Video - Featured showcase with playlist -->
+  <LaunchVideo 
+    videos={[
+      { src: "/videos/launch.mp4" },
+      { src: "/videos/deepfakes-promo.mp4" },
+      { src: "/videos/articles-promo.mp4" }
+    ]}
+    title="What's This Site About?"
+    description="A quick tour through my builds, self-hosted AI setup, and the projects that keep me up too late."
+  />
+
+  <!-- Most Recent Section -->
+  <section id="most-recent" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
     <div class="flex items-center justify-between mb-8">
-      <h2 class="text-2xl font-bold">Featured Builds</h2>
-      <a href="/builds" class="btn btn-secondary text-sm">
+      <h2 class="text-2xl font-bold">Most Recent</h2>
+      <a href="/articles" class="btn btn-secondary text-sm">
         View All
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -59,9 +76,17 @@ const builds = [
       </a>
     </div>
     
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      {builds.map((build) => (
-        <Card {...build} />
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {recentArticles.map((article) => (
+        <Card
+          title={article.data.title}
+          description={article.data.description}
+          href={article.href}
+          image={article.data.image}
+          tags={[article.type, ...article.data.tags?.slice(0, 1) || []]}
+          date={article.data.date.toISOString()}
+          readingTime={article.readingTime}
+        />
       ))}
     </div>
     

@@ -46,6 +46,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </span>
         </button>
         <div id="form-message" class="form-message hidden"></div>
+        <p class="form-privacy">
+          🔒 Messages are sent via Formspree. I read everything personally and never share your email.
+        </p>
       </form>
     </div>
 
@@ -235,6 +238,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.3);
     color: #ef4444;
+  }
+  .form-privacy {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-muted, #888);
+    opacity: 0.8;
   }
 </style>
 

@@ -1,0 +1,42 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/ArticleLayout.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: post,
+  }));
+}
+
+const post = Astro.props;
+const { Content, headings } = await post.render();
+
+// Calculate reading time
+function calculateReadingTime(body: string | undefined): number {
+  if (!body) return 0;
+  const wordsPerMinute = 225;
+  const plainText = body.replace(/[#*`\[\]]/g, '').trim();
+  const wordCount = plainText.split(/\s+/).filter(w => w.length > 0).length;
+  return Math.ceil(wordCount / wordsPerMinute);
+}
+
+const readingTime = calculateReadingTime(post.body);
+---
+
+<Layout 
+  title={post.data.title} 
+  description={post.data.description}
+  date={post.data.date.toISOString()}
+  tags={post.data.tags}
+  image={post.data.image}
+  slug={post.slug}
+  headings={headings}
+  readingTime={readingTime}
+  category="Blog"
+  series={post.data.series}
+  collection="blog"
+>
+  <Content />
+</Layout>

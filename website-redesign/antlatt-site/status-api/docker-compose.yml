@@ -11,7 +11,7 @@ services:
       - REDIS_HOST=192.168.1.206
       - REDIS_PORT=6379
       - OLLAMA_URL=http://192.168.1.207:11434/api/tags
-      - WEBSITE_URL=http://antlatt-site/
+      - WEBSITE_URL=http://host.docker.internal:8080/
     # If using Docker network with antlatt-site:
     # networks:
     #   - antlatt-network

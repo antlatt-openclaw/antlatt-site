@@ -1,0 +1,244 @@
+---
+title: "Building a Mini Home Lab Rack with Proxmox in 2026"
+description: "The complete guide to building an efficient, compact home lab using Proxmox, mini-PCs, and the latest 2026 best practices for virtualization and containers."
+date: 2026-02-25
+tags: ["proxmox", "homelab", "virtualization", "lxc", "mini-pc"]
+image: "/images/blog/mini-homelab-rack-proxmox/hero.webp"
+---
+
+The home lab landscape has dramatically shifted in 2026. Gone are the days of massive 42U racks and power-hungry servers. Today's homelabbers are embracing a new philosophy: smaller, more intentional, and container-focused.
+
+This guide walks you through building a mini home lab rack using Proxmox—the de facto standard for home virtualization—optimised for efficiency, silence, and practical use.
+
+## Why Mini Labs Are Taking Over
+
+The traditional home lab was often a repurposed enterprise server: loud, hot, and drawing 200+ watts at idle. The 2026 approach is different:
+
+- **Power efficiency**: Modern mini-PCs idle at 6-10W
+- **Silent operation**: Fanless options are viable
+- **Sufficient performance**: Intel N100's 4 cores handle dozens of containers
+- **Lower cost**: Entry point under $150
+
+> 💡 **Key Insight**: The shift isn't about having less—it's about having *exactly what you need* and nothing more.
+
+## Hardware Selection: The 2026 Sweet Spot
+
+### Mini-PC Recommendations
+
+| Tier | Hardware | Cores | RAM | Power | Best For |
+|------|----------|-------|-----|-------|----------|
+| **Budget** | GMKtec N95 | 4 | 8GB | 10W | Learning, light workloads |
+| **Sweet Spot** | Intel N100 Fanless | 4 | 16GB | 8W | Most home labs |
+| **Performance** | Beelink EQI13 PRO | 10 | 32GB | 25W | Heavy containers, VMs |
+| **Maximum** | Intel NUC 13 Pro | 14 | 64GB | 35W | Production-grade lab |
+
+### What to Look For
+
+1. **CPU**: Intel N100 minimum—excellent performance-per-watt
+2. **RAM**: 16GB minimum, 32GB for running many containers
+3. **Storage**: NVMe for OS, add SSD/HDD for data
+4. **Network**: Dual NICs ideal (management + VM traffic separate)
+
+## Installing Proxmox VE
+
+### The Quick Path
+
+1. **Download** Proxmox VE ISO from proxmox.com
+2. **Flash** to USB using Ventoy or balenaEtcher
+3. **Boot** from USB on your mini-PC
+4. **Install** following the wizard (20 minutes)
+5. **Access** web UI at `https://[IP]:8006`
+
+### First-Boot Configuration
+
+```bash
+# Update the system
+apt update && apt dist-upgrade -y
+
+# Install useful tools
+apt install -y iftop htop ncdu
+
+# Remove enterprise repo (optional, for home use)
+rm /etc/apt/sources.list.d/pve-enterprise.list
+echo "deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription" > /etc/apt/sources.list.d/pve-no-subscription.list
+apt update
+```
+
+## LXC vs VMs: Making the Right Choice
+
+One of the most common questions in 2026: **Should I use LXC containers or VMs?**
+
+### Use LXC Containers For
+
+```yaml
+# Perfect for LXC
+- VPN: WireGuard, Tailscale
+- DNS: Pi-hole, AdGuard Home
+- Reverse Proxy: Nginx Proxy Manager, Traefik
+- Docker: Portainer, individual containers
+- Media: Plex, Jellyfin, *arr stack
+- Files: Samba, NFS
+```
+
+**Why LXC?**
+- 2-5% overhead vs 15-20% for VMs
+- Direct hardware access
+- Fast startup (seconds)
+- Easy backups with snapshots
+
+### Use VMs For
+
+```yaml
+# Better as VMs
+- TrueNAS (ZFS storage appliance)
+- Windows workloads
+- OPNsense/pfSense (firewall)
+- Anything needing kernel isolation
+```
+
+## Storage Strategy
+
+### Recommended Setup
+
+```
+┌─────────────────────────────────────────┐
+│              Proxmox Host               │
+├─────────────────────────────────────────┤
+│  local-lvm (LVM-Thin)                   │
+│  ├─ Container rootfs                    │
+│  └─ VM disks                            │
+├─────────────────────────────────────────┤
+│  ZFS Pool (if you have multiple drives) │
+│  ├─ Data integrity                      │
+│  ├─ Compression                         │
+│  └─ Snapshots                           │
+└─────────────────────────────────────────┘
+```
+
+### Simple Path (Single Drive)
+
+Use the default LVM-Thin setup. It's flexible and sufficient for most use cases.
+
+### Advanced Path (Multiple Drives)
+
+Create a ZFS pool for data integrity and compression:
+
+```bash
+# Create ZFS pool with two drives (mirror)
+zpool create -f tank mirror /dev/sda /dev/sdb
+
+# Enable compression
+zfs set compression=lz4 tank
+
+# Create datasets
+zfs create tank/containers
+zfs create tank/backup
+```
+
+## Network Architecture
+
+### The Clean Approach
+
+```
+Internet
+    │
+    ├─ [VM] OPNsense/pfSense (firewall)
+    │       └─ Handles VLANs, DNS, VPN
+    │
+    └─ [LXC] Various containers
+            ├─ Nginx Proxy Manager
+            ├─ Pi-hole/AdGuard
+            └─ Services
+```
+
+### VLAN Strategy
+
+```yaml
+# Recommended VLANs
+VLAN 10: Trusted (computers, phones)
+VLAN 20: IoT (smart devices, cameras)
+VLAN 30: Guests (isolated)
+VLAN 40: Servers (homelab services)
+```
+
+## Initial Workloads to Deploy
+
+### Essential Services
+
+1. **Portainer** - Docker management UI
+2. **Nginx Proxy Manager** - Reverse proxy with SSL
+3. **Pi-hole** - Network-wide ad blocking
+4. **WireGuard** - VPN for remote access
+5. **Uptime Kuma** - Service monitoring
+
+### LXC Template Installation
+
+```bash
+# Download LXC template
+pveam available
+pveam download local debian-12-standard_12.2-1_amd64.tar.zst
+
+# Create container from UI or CLI
+pct create 100 local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst \
+  --hostname docker-host \
+  --memory 2048 \
+  --cores 2 \
+  --rootfs local-lvm:8 \
+  --unprivileged 1 \
+  --features nesting=1,keyctl=1
+```
+
+## Power Consumption Reality Check
+
+| Setup | Idle | Load | Est. Annual Cost |
+|-------|------|------|------------------|
+| Intel N100 + 8GB | 8W | 30W | ~$15/year |
+| i5 Mini-PC + 16GB | 20W | 80W | ~$35/year |
+| Traditional 1U Server | 80W | 300W | ~$120/year |
+
+> 🔋 **Cost Calculation**: At $0.15/kWh, an 8W idle device costs ~$10/year to run 24/7.
+
+## Example Build: The $200 Lab
+
+Here's a complete budget build:
+
+| Component | Item | Cost |
+|-----------|------|------|
+| Mini-PC | GMKtec N100 8GB/256GB | $149 |
+| UPS | CyberPower 450VA | $35 |
+| Network Switch | TP-Link 8-port gigabit | $18 |
+| **Total** | | **~$200** |
+
+This runs 15-20 containers comfortably.
+
+## Final Thoughts
+
+The mini lab movement isn't about compromise—it's about optimisation. A single Intel N100 mini-PC running Proxmox can replace entire racks of old enterprise gear while using a fraction of the power.
+
+Start small. Add containers as needed. Upgrade only when you hit actual limits.
+
+## Quick Reference Commands
+
+```bash
+# List all containers
+pct list
+
+# Start container
+pct start 100
+
+# Enter container console
+pct enter 100
+
+# Create backup
+vzdump 100 --mode snapshot --storage local --compress zstd
+
+# Check storage
+df -h
+
+# Monitor resources
+htop
+```
+
+---
+
+*Building a home lab in 2026 is about intentionality. Start with these principles, and you'll have a powerful, efficient setup that grows with your needs.*

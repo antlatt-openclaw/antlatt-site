@@ -1,0 +1,50 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Card from '../../components/Card.astro';
+
+const posts = await getCollection('blog', ({ data }) => !data.draft);
+const sortedPosts = posts.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+// Helper to calculate reading time
+function calculateReadingTime(body: string | undefined): number {
+  if (!body) return 0;
+  const wordsPerMinute = 225;
+  const plainText = body.replace(/[#*`\[\]]/g, '').trim();
+  const wordCount = plainText.split(/\s+/).filter(w => w.length > 0).length;
+  return Math.ceil(wordCount / wordsPerMinute);
+}
+
+// Pre-calculate reading times for all posts
+const postsWithReadTime = sortedPosts.map(post => ({
+  ...post,
+  readingTime: calculateReadingTime(post.body)
+}));
+---
+
+<BaseLayout title="Blog | ANTLATT.COM" description="Articles, tutorials, and thoughts on tech, homelabs, and DIY projects.">
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <h1 class="text-4xl font-bold mb-4">Blog</h1>
+    <p class="text-text-muted text-lg mb-8">
+      Articles, tutorials, and thoughts on tech, homelabs, and DIY projects.
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {postsWithReadTime.map((post) => (
+        <Card
+          title={post.data.title}
+          description={post.data.description}
+          href={`/blog/${post.slug}`}
+          image={post.data.image}
+          tags={post.data.tags}
+          date={post.data.date.toISOString()}
+          readingTime={post.readingTime}
+        />
+      ))}
+    </div>
+    
+    {posts.length === 0 && (
+      <p class="text-text-muted">No blog posts yet. Check back soon!</p>
+    )}
+  </section>
+</BaseLayout>

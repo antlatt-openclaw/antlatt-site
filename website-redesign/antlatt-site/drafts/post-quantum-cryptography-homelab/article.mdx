@@ -1,0 +1,609 @@
+---
+title: "Post-Quantum Cryptography for Homelabs: Prepare Your Servers for the Quantum Era"
+description: "A practical guide to implementing quantum-resistant cryptography in your homelab. Learn how to upgrade SSH, VPNs, TLS, and file encryption before quantum computers break current encryption."
+pubDate: 2025-02-25
+author: Anthony Lattanzio
+image: "/images/posts/post-quantum-cryptography.jpg"
+tags: ["security", "homelab", "cryptography", "quantum", "ssh", "vpn", "tls"]
+---
+
+You've probably heard about quantum computers breaking encryption. Maybe you've dismissed it as a distant problem—something for governments and megacorps to worry about. Here's the thing: **adversaries can capture your encrypted traffic today and decrypt it later** when quantum computers catch up.
+
+If you run a homelab, this matters. Your SSH keys, VPN tunnels, and TLS certificates protect DNS queries, internal services, remote access, and sensitive data. If any of that has long-term confidentiality requirements, you should start thinking about post-quantum cryptography (PQC) now.
+
+The good news? **You can implement PQC today**—and it's surprisingly practical. OpenSSH 10.0 (released April 2025) makes quantum-resistant key exchange the default. Tools like Rosenpass add PQC to WireGuard. Caddy 2.10 enables it automatically for web servers.
+
+Let's walk through what you need to know and how to upgrade your homelab.
+
+## Why This Matters Now (Not in 10 Years)
+
+### The "Harvest Now, Decrypt Later" Threat
+
+The quantum computers that can break today's encryption don't exist yet. But that doesn't mean you're safe. The real threat is this:
+
+1. An adversary captures your encrypted traffic today (SSH sessions, VPN tunnels, HTTPS requests)
+2. They store it
+3. In 5-10 years, when quantum computers reach "Q-Day," they decrypt it all at once
+
+**Data with long-term confidentiality requirements needs PQC protection now.** This includes:
+- SSH keys to production servers
+- VPN traffic between sites
+- Backup encryption
+- Internal service communication
+- Any data that needs to stay private for 10+ years
+
+Expert estimates put cryptographically relevant quantum computers (CRQC) in the **2028-2035 timeframe**. NIST expects to phase out RSA and ECC by 2030 and disallow them entirely by 2035. That timeline is closer than it sounds.
+
+### The Standards Are Ready
+
+NIST finalized post-quantum cryptography standards in August 2024:
+
+- **FIPS 203 (ML-KEM)**: Key exchange based on lattice cryptography
+- **FIPS 204 (ML-DSA)**: Digital signatures based on lattice cryptography  
+- **FIPS 205 (SLH-DSA)**: Hash-based signatures as a backup option
+
+These aren't experimental—they're production-ready standards backed by serious cryptanalysis. You can start using them today.
+
+## The Size Trade-off
+
+Before we dive into implementation, let's address the elephant in the room: PQC keys and signatures are bigger.
+
+| Algorithm | Key Size | Notes |
+|-----------|----------|-------|
+| X25519 (classical) | 32 bytes | Your current SSH key exchange |
+| ML-KEM-768 (PQC) | 1,184 bytes | Post-quantum equivalent |
+| Ed25519 (classical) | 64 bytes | Your current SSH key signature |
+| ML-DSA-65 (PQC) | 3,293 bytes | Post-quantum signature |
+
+Yes, that's a 50x increase for signatures. But practically? It's still just a few kilobytes—a TLS handshake takes 1-2ms longer. For homelab use cases, this is negligible. Your SSH sessions won't feel slower.
+
+## SSH: The Easiest Place to Start
+
+If you run Linux servers, you probably use SSH constantly. Good news: **OpenSSH makes PQC migration almost effortless**.
+
+### Version Matters
+
+| OpenSSH Version | Release | PQC Support |
+|-----------------|---------|-------------|
+| 9.0 | April 2022 | `sntrup761x25519-sha512` hybrid KEX (opt-in) |
+| 9.9 | Late 2024 | `mlkem768x25519-sha256` hybrid KEX (opt-in) |
+| **10.0** | **April 2025** | **PQC is the DEFAULT** |
+
+If you're on OpenSSH 10.0+, you're already using post-quantum key exchange. No configuration needed.
+
+### Check Your Current Setup
+
+```bash
+# Check OpenSSH version
+ssh -V
+
+# See supported key exchange algorithms (look for mlkem or sntrup)
+ssh -Q kex | grep -E "(mlkem|sntrup)"
+
+# Check what your server supports
+sshd -T | grep kex
+```
+
+### Server Configuration
+
+If you're on OpenSSH 9.0-9.9, enable PQC algorithms in `/etc/ssh/sshd_config`:
+
+```bash
+# Prefer post-quantum algorithms (most secure first)
+KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512,curve25519-sha256
+
+# Or append to defaults (less invasive)
+KexAlgorithms +mlkem768x25519-sha256,sntrup761x25519-sha512
+```
+
+Restart SSH after changes:
+
+```bash
+sudo systemctl restart sshd
+```
+
+### Client Configuration
+
+Add this to your `~/.ssh/config`:
+
+```
+Host *
+    KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512,curve25519-sha256
+```
+
+### Verify It's Working
+
+```bash
+# Verbose SSH connection shows the negotiated algorithm
+ssh -v user@your-server 2>&1 | grep "kex algorithm"
+
+# You should see something like:
+# debug1: kex: algorithm: mlkem768x25519-sha256
+```
+
+### How It Works: Hybrid Key Exchange
+
+OpenSSH uses **hybrid key exchange**—combining classical (X25519) with post-quantum (ML-KEM):
+
+- Security is at least as strong as the best algorithm
+- If quantum attacks never materialize, you still have classical security
+- If classical cryptography is broken, you still have quantum resistance
+- Backward compatible with older clients
+
+This is the pattern you'll see everywhere: **hybrid algorithms give you both worlds**.
+
+## VPN: Securing WireGuard with Rosenpass
+
+WireGuard is probably the most popular VPN for homelabs—fast, simple, and elegant. But its key exchange uses Curve25519, which is vulnerable to quantum attacks.
+
+The protocol doesn't natively support PQC yet. But there's an elegant solution: **Rosenpass**.
+
+### What Rosenpass Does
+
+Rosenpass layers post-quantum key exchange on top of WireGuard:
+
+- Uses ML-KEM and Classic McEliece for quantum-resistant key exchange
+- Rotates WireGuard's pre-shared keys (PSK) every ~2 minutes
+- Provides hybrid security: WireGuard's speed + quantum resistance
+- Works with your existing WireGuard setup
+
+It's essentially an enhancement, not a replacement.
+
+### Installing Rosenpass
+
+On Debian/Ubuntu:
+
+```bash
+# Install dependencies
+sudo apt-get install libsodium-dev libclang-dev cmake pkg-config git build-essential wireguard
+
+# Download pre-built binary (recommended)
+wget https://github.com/rosenpass/rosenpass/releases/latest/download/rosenpass-x86_64-linux.tar
+tar xf rosenpass-x86_64-linux.tar
+sudo install bin/rosenpass /usr/local/bin
+sudo install bin/rp /usr/local/bin
+
+# Verify installation
+rp --version
+```
+
+Or build from source:
+
+```bash
+git clone https://github.com/rosenpass/rosenpass.git
+cd rosenpass
+cargo build --release
+sudo install target/release/rosenpass /usr/local/bin
+sudo install target/release/rp /usr/local/bin
+```
+
+### Setting Up a Rosenpass-Enhanced WireGuard Tunnel
+
+**On the server:**
+
+```bash
+# Generate Rosenpass keys
+rp genkey server.rosenpass-secret
+rp pubkey server.rosenpass-secret server.rosenpass-public
+
+# Start Rosenpass-enhanced WireGuard
+rp exchange server.rosenpass-secret dev rosenpass0 \
+  listen 0.0.0.0:9999 \
+  peer client.rosenpass-public \
+  allowed-ips 10.0.0.0/24
+
+# Assign IP address
+sudo ip a add 10.0.0.1/24 dev rosenpass0
+sudo ip link set rosenpass0 up
+```
+
+**On the client:**
+
+```bash
+# Generate keys
+rp genkey client.rosenpass-secret
+rp pubkey client.rosenpass-secret client.rosenpass-public
+
+# Connect to server (replace SERVER_IP)
+rp exchange client.rosenpass-secret dev rosenpass0 \
+  peer server.rosenpass-public \
+  endpoint SERVER_IP:9999 \
+  allowed-ips 10.0.0.0/24
+
+# Assign IP address
+sudo ip a add 10.0.0.2/24 dev rosenpass0
+sudo ip link set rosenpass0 up
+```
+
+You need to exchange public keys between server and client, just like with regular WireGuard.
+
+### Alternative: NetBird for Managed PQC VPN
+
+If you prefer a managed solution, **NetBird** embeds Rosenpass for automatic PQC:
+
+```bash
+# One-line install
+curl -fsSL https://pkgs.netbird.io/install.sh | sh
+
+# Connect to your network
+netbird up
+```
+
+NetBird gives you:
+- Automatic PQC key exchange via Rosenpass
+- Mesh VPN topology
+- SSO integration
+- Access control lists
+- A central management UI
+
+For homelabs with multiple sites, it's simpler than running Rosenpass manually.
+
+### Commercial VPNs with PQC
+
+If you use a commercial VPN for internet traffic, several providers now support PQC:
+
+| Provider | PQC Support | Notes |
+|----------|-------------|-------|
+| Mullvad | Default ON | ML-KEM hybrid with WireGuard |
+| ExpressVPN | Active | Post-Quantum WireGuard |
+| NordVPN | Active | NordLynx with PQC |
+
+For homelab infrastructure, I'd recommend self-hosted Rosenpass or NetBird for full control.
+
+## Web Servers: TLS with Post-Quantum
+
+If you run web services in your homelab—Proxmox, TrueNAS, Home Assistant, custom apps—you want TLS 1.3 with post-quantum key exchange.
+
+### The Caddy Approach: Zero Configuration
+
+**Caddy 2.10+ (built with Go 1.24+) enables PQC by default.** No configuration needed.
+
+```bash
+# Install with xcaddy to ensure correct Go version
+xcaddy build --with github.com/caddyserver/caddy/v2@latest
+
+# Or download official builds (include Go 1.24+)
+# https://caddyserver.com/download
+```
+
+Your Caddyfile remains unchanged:
+
+```
+homelab.local {
+    reverse_proxy localhost:8080
+}
+```
+
+PQC is automatic. When a browser connects that supports `X25519MLKEM768`, Caddy uses it.
+
+Verify:
+
+```bash
+# Check your TLS connection
+openssl s_client -connect homelab.local:443 -tls1_3 2>&1 | grep "Key-Exchange"
+
+# Or check with curl
+curl -v https://homelab.local 2>&1 | grep -i "key exchange"
+```
+
+### Nginx with OpenSSL 3.5
+
+OpenSSL 3.5 (released April 2025) brings native PQC support, including ML-KEM and ML-DSA. To use it with Nginx:
+
+```bash
+# Build OpenSSL 3.5 from source
+wget https://www.openssl.org/source/openssl-3.5.0.tar.gz
+tar -xzf openssl-3.5.0.tar.gz
+cd openssl-3.5.0
+./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl
+make -j$(nproc)
+sudo make install
+
+# Build Nginx against the new OpenSSL
+wget http://nginx.org/download/nginx-1.27.0.tar.gz
+tar -xzf nginx-1.27.0.tar.gz
+cd nginx-1.27.0
+./configure \
+  --with-openssl=/path/to/openssl-3.5.0 \
+  --with-http_ssl_module \
+  --with-openssl-opt='enable-ml-kem enable-ml-dsa'
+make -j$(nproc)
+sudo make install
+```
+
+Nginx configuration stays the same—OpenSSL handles PQC negotiation:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name homelab.local;
+    
+    ssl_certificate /etc/ssl/homelab.crt;
+    ssl_certificate_key /etc/ssl/homelab.key;
+    ssl_protocols TLSv1.3;
+    
+    # OpenSSL 3.5 negotiates ML-KEM when client supports it
+}
+```
+
+### The Cloudflare Shortcut
+
+For homelab services exposed to the internet, there's an even easier path: **Cloudflare provides PQC for free** on all plans.
+
+1. Point your domain's DNS through Cloudflare
+2. Enable the proxy (orange cloud)
+3. Done—your traffic gets post-quantum TLS automatically
+
+By March 2025, **38% of TLS 1.3 connections through Cloudflare used PQC**. There's no performance penalty or extra cost.
+
+## File Encryption: Age Goes Quantum
+
+For encrypting backups, secrets, and sensitive files, **Age** is a modern alternative to GPG that's simpler and more secure. Age 1.3.0+ includes native post-quantum support.
+
+### Installing Age
+
+```bash
+# Ubuntu/Debian
+sudo apt install age
+
+# Arch Linux
+sudo pacman -S age
+
+# macOS
+brew install age
+
+# Or download directly
+wget https://dl.filippo.io/age/latest?for=linux/amd64 -O age
+chmod +x age
+sudo mv age /usr/local/bin/
+```
+
+### Generating Post-Quantum Keys
+
+```bash
+# Generate a PQ key pair
+age-keygen -pq -o pq-key.txt
+
+# You'll see output like:
+# Public key: age1pq1xy2kn3n4s5v6... 
+# (PQ recipients are ~2000 characters long!)
+```
+
+The `-pq` flag creates a post-quantum key using ML-KEM.
+
+### Encrypting Files
+
+```bash
+# Encrypt with your PQ public key
+age -r age1pq1... -o secrets.tar.gz.age secrets.tar.gz
+
+# Decrypt with your private key
+age -d -i pq-key.txt secrets.tar.gz.age > secrets.tar.gz
+```
+
+### Verify PQC Encryption
+
+```bash
+# Check if a file uses post-quantum encryption
+age-inspect secrets.tar.gz.age
+
+# Output includes:
+# - "mlkem768x25519"
+# - "This file uses post-quantum encryption."
+```
+
+### Re-encrypting Existing Backups
+
+For files encrypted with classical keys:
+
+```bash
+# Decrypt with old key
+age -d -i old-classical-key.txt backup.tar.gz.age > backup.tar.gz
+
+# Re-encrypt with PQ key
+age -r age1pq1... -o backup-pq.tar.gz.age backup.tar.gz
+
+# Securely delete the unencrypted file
+shred -u backup.tar.gz
+```
+
+## Certificate Authorities: Building a PQC-Ready PKI
+
+If you run your own certificate authority for internal services (and you should), **Smallstep's step-ca** supports post-quantum TLS 1.3.
+
+### Quick Setup
+
+```bash
+# Install step-cli and step-ca
+wget https://dl.smallstep.com/gh-release/gh-release/gh-release/step-cli/step-cli_linux_amd64.tar.gz
+tar -xzf step-cli_linux_amd64.tar.gz
+sudo mv step /usr/local/bin/
+
+wget https://dl.smallstep.com/gh-release/gh-release/gh-release/step-ca/step-ca_linux_amd64.tar.gz
+tar -xzf step-ca_linux_amd64.tar.gz
+sudo mv step-ca /usr/local/bin/
+
+# Initialize your CA
+step ca init --name="Homelab CA" --provisioner="admin" --dns="ca.homelab.local"
+```
+
+### Enable Post-Quantum TLS
+
+```bash
+# Enable PQC in step-ca
+export GODEBUG=tlsmlkem=1
+
+# Start the CA
+step-ca config/ca.json
+```
+
+Current step-ca supports **hybrid TLS 1.3 key exchange** (X25519MLKEM768). Full PQC certificates with ML-DSA signatures are still in development—watch for updates.
+
+## OpenSSL 3.5: Native PQC Tools
+
+OpenSSL 3.5 gives you direct access to PQC algorithms:
+
+### Generate ML-DSA Keys and Certificates
+
+```bash
+# Generate a post-quantum signing key
+openssl genpkey -algorithm ml-dsa65 -out mldsa65_key.pem
+
+# Create a self-signed certificate
+openssl req -x509 -new -key mldsa65_key.pem -out mldsa65_cert.pem -days 365 \
+  -subj "/CN=homelab.local"
+
+# Verify it's using ML-DSA
+openssl x509 -in mldsa65_cert.pem -text -noout | grep "Signature Algorithm"
+# Output: Signature Algorithm: ml-dsa65
+```
+
+### Generate ML-KEM Keys
+
+```bash
+# Generate a key encapsulation key
+openssl genpkey -algorithm ml-kem-768 -out mlkem768_key.pem
+
+# Extract public key
+openssl pkey -in mlkem768_key.pem -pubout -out mlkem768_pub.pem
+```
+
+These commands work just like classical key generation—OpenSSL handles the new algorithms transparently.
+
+## Browser Support
+
+Your homelab services need PQC on the server side, but what about clients? Modern browsers support post-quantum TLS:
+
+| Browser | Version | PQC Support |
+|---------|---------|-------------|
+| Chrome | 116+ | `X25519Kyber768Draft00` |
+| Chrome | 124+ | `X25519MLKEM768` (default) |
+| Firefox | 125+ | `X25519MLKEM768` (default) |
+| Edge | 116+ | Same as Chrome |
+| Safari | TBD | In development |
+
+To verify in Chrome:
+1. Open DevTools (F12)
+2. Go to Security tab
+3. Look for Key Exchange under Connection
+4. Should show `X25519MLKEM768`
+
+## Performance: Should You Worry?
+
+Short answer: **No.**
+
+### Key Exchange Benchmarks
+
+| Operation | X25519 | ML-KEM-768 | Difference |
+|-----------|--------|------------|------------|
+| Key generation | ~30K cycles | ~50K cycles | 1.7x slower |
+| Encapsulation | ~30K cycles | ~65K cycles | 2x slower |
+| Decapsulation | ~30K cycles | ~50K cycles | 1.7x slower |
+
+In real terms, a TLS handshake takes **1-2ms longer** with PQC. You won't notice.
+
+### Signature Benchmarks
+
+| Operation | Ed25519 | ML-DSA-65 | Difference |
+|-----------|---------|-----------|------------|
+| Sign | ~50K cycles | ~150K cycles | 3x slower |
+| Verify | ~100K cycles | ~80K cycles | 20% faster |
+| Signature size | 64 bytes | 3,293 bytes | 50x larger |
+
+Verification is actually faster with ML-DSA. The larger signature size matters for bandwidth but not for latency.
+
+### Practical Impact
+
+- **SSH sessions**: Imperceptible difference
+- **VPN throughput**: Rosenpass adds minimal latency
+- **TLS handshakes**: +1-2ms, invisible to users
+- **Certificate size**: More bandwidth, but still reasonable
+
+The security benefits far outweigh the performance costs for homelab use cases.
+
+## Implementation Roadmap
+
+Here's a phased approach to upgrade your homelab:
+
+### Week 1: Assessment
+
+```bash
+# Inventory your infrastructure
+ssh -V                    # Check SSH version
+wg show                   # List WireGuard interfaces
+nginx -v                  # Check web server
+age -version              # Check encryption tools
+```
+
+Document:
+- All SSH servers and clients
+- VPN services in use
+- Web servers and TLS termination points
+- File encryption workflows
+- Any internal PKI
+
+### Week 2: SSH
+
+```bash
+# Upgrade OpenSSH
+sudo apt update && sudo apt install openssh-server openssh-client
+
+# Configure server
+sudo nano /etc/ssh/sshd_config
+# Add: KexAlgorithms +mlkem768x25519-sha256,sntrup761x25519-sha512
+
+# Restart and test
+sudo systemctl restart sshd
+ssh -v user@localhost 2>&1 | grep kex
+```
+
+### Week 3: VPN
+
+Choose based on complexity:
+- **Rosenpass + WireGuard**: Full control, manual setup
+- **NetBird**: Easier management, automatic PQC
+
+### Week 4: TLS
+
+- **Caddy**: Upgrade to 2.10+ (automatic PQC)
+- **Nginx**: Rebuild with OpenSSL 3.5
+- **Cloudflare**: Point DNS through them (easiest)
+
+### Ongoing: File Encryption
+
+```bash
+# Generate PQ keys
+age-keygen -pq -o ~/.age/pq-key.txt
+
+# Re-encrypt critical files
+age -d -i old-key.txt backup.age | age -r age1pq1... -o backup-pq.age
+```
+
+## Recommended Stack
+
+| Component | Tool | Why |
+|-----------|------|-----|
+| SSH | OpenSSH 10.0+ | Native PQC, no config needed |
+| VPN | Rosenpass + WireGuard | Hybrid security, works with existing setup |
+| VPN (managed) | NetBird | Simpler for multiple nodes |
+| Web Server | Caddy 2.10+ | Automatic PQC, zero configuration |
+| File Encryption | Age 1.3.0+ | Simple native PQ support |
+| CA | Smallstep step-ca | PQC-ready TLS 1.3 |
+
+## The Bottom Line
+
+Post-quantum cryptography isn't theoretical anymore. The standards are final, the tools are ready, and the migration is practical for homelab enthusiasts.
+
+**Start with SSH**—it's the easiest win. If you're on OpenSSH 10.0+, you're already using PQC. If not, add the algorithms to your config.
+
+**Then tackle your VPN**—Rosenpass or NetBird will give you quantum-resistant tunnels without abandoning WireGuard.
+
+**Finally, upgrade your TLS**—Caddy makes this effortless, and Cloudflare offers a zero-effort shortcut.
+
+The "harvest now, decrypt later" threat is real. If you're running infrastructure that needs to stay private for the next decade, the time to act is now.
+
+Your future self—and your homelab's security—will thank you.
+
+---
+
+*Stay cryptographic, stay secure.* 🔐

@@ -1,0 +1,546 @@
+---
+title: "Immich: The Complete Guide to Self-Hosting Your Own Google Photos in 2026"
+description: "Take control of your photo library with Immich - the open-source, self-hosted Google Photos alternative with AI features, mobile backup, and complete privacy."
+pubDate: 2026-02-25
+author: "Anthony Lattanzio"
+tags: ["homelab", "self-hosted", "immich", "docker", "privacy", "photo-management"]
+image: "/images/blog/immich-self-hosted-photos/hero.webp"
+imageAlt: "Immich self-hosted photo management dashboard with family photos"
+---
+
+# Immich: The Complete Guide to Self-Hosting Your Own Google Photos in 2026
+
+*Privacy-first photo management that your whole family can actually use.*
+
+---
+
+Let's be honest about Google Photos.
+
+It's convenient. It works. Your photos sync automatically. The AI search is creepily good at finding "that photo from the beach trip in 2019." And for years, that was enough.
+
+But then you started paying attention.
+
+You noticed the "15GB free storage" that somehow fills up every year. You read about Google using your photos to train AI. You wondered what happens to your memories when policies change. And you realized: **your photos aren't really yours anymore.**
+
+Enter Immich.
+
+In 2026, Immich has become *the* go-to solution for self-hosted photo management. With 87,000+ GitHub stars, an active development team, and feature parity with Google Photos that actually exceeds it in some areas, it's no wonder homelab enthusiasts are making the switch.
+
+This guide covers everything you need to know to set up Immich, configure mobile backup, enable AI features, and migrate your existing photo library—all while keeping your memories private on your own hardware.
+
+---
+
+## Why Immich? The Case for Self-Hosted Photos
+
+### The Privacy Argument
+
+Every photo you upload to Google Photos, iCloud, or Amazon Photos lives on someone else's servers. These companies have access to your memories:
+- Photos of your kids growing up
+- Location data from every vacation
+- Faces of everyone you know, tagged and searchable
+- Documents, receipts, and sensitive information you've captured
+
+When you self-host with Immich, **all of that stays on your hardware**. No cloud provider can train models on your family photos. No policy change can lock you out. No subscription fee can hold your memories hostage.
+
+### The Storage Argument
+
+Google offers 15GB for free. After that, you're paying monthly for storage—forever.
+
+With Immich, your only limit is your hard drive. A 4TB drive costs $80 once. The equivalent Google One storage? $150/year, every year, indefinitely.
+
+### The Feature Argument
+
+Here's what might surprise you: **Immich has more features than Google Photos in several areas:**
+
+| Feature | Immich | Google Photos |
+|---------|--------|---------------|
+| Face Recognition | ✅ Local | ✅ Cloud |
+| Smart Search | ✅ Local | ✅ Cloud |
+| Automatic Backup | ✅ | ✅ |
+| HDR Video Support | ✅ | ✅ |
+| Memories/Timeline | ✅ | ✅ |
+| Album Sharing | ✅ Custom URLs | ✅ |
+| Duplicate Detection | ✅ User-controlled | ❌ |
+| Manual Face Tagging | ✅ | ❌ |
+| External Library Import | ✅ | ❌ |
+| Self-hosted | ✅ | ❌ |
+| No Subscription | ✅ | ❌ |
+
+### The "Family Test"
+
+The real proof? **My family actually uses it.**
+
+That's the difference between a pet project and a genuine Google Photos replacement. Immich's interface is familiar enough that non-technical users can pick it up in minutes. The mobile app works the same way. Automatic backup just... works.
+
+---
+
+## Hardware Requirements
+
+Before diving into setup, let's talk about what you need to run Immich.
+
+### Minimum Requirements
+
+For a functional Immich server with machine learning features:
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| RAM | 6GB | 8GB+ |
+| CPU | 2 cores | 4+ cores |
+| Storage | Depends on library | SSD for database |
+| OS | Linux/Windows (WSL2) | Linux |
+
+The 6GB RAM requirement is real—machine learning models for face recognition and smart search need memory. If you're running on less (like a Raspberry Pi with 4GB), you can offload ML to a remote server or use lighter models.
+
+### GPU Acceleration (Optional but Recommended)
+
+If you want snappy face recognition and instant smart search, GPU acceleration makes a massive difference. Immich supports:
+
+:::note[Supported GPU Backends]
+- **CUDA:** NVIDIA GPUs (compute capability 5.2+) — most reliable
+- **ROCm:** AMD GPUs
+- **OpenVINO:** Intel GPUs (Iris Xe, Arc)
+- **ARM NN:** Mali GPUs
+- **RKNN:** Rockchip SoCs (RK3566, RK3568, RK3576, RK3588)
+:::
+
+CPU-only works fine for small libraries. But once you hit 10,000+ photos, you'll appreciate the GPU speedup.
+
+---
+
+## Installation: Docker Compose Setup
+
+The fastest way to get Immich running is with Docker Compose. Here's a complete walkthrough.
+
+### Step 1: Create the Immich Directory
+
+```bash
+mkdir -p ~/immich-app
+cd ~/immich-app
+```
+
+### Step 2: Download Configuration Files
+
+```bash
+# Download the docker-compose.yml
+wget -O docker-compose.yml https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
+
+# Download the example environment file
+wget -O .env https://github.com/immich-app/immich/releases/latest/download/example.env
+```
+
+### Step 3: Configure Environment Variables
+
+Edit the `.env` file with your settings:
+
+```env
+# The location where your uploaded files are stored
+# Point this to your storage location (NAS mount, large drive, etc.)
+UPLOAD_LOCATION=/mnt/photos-library
+
+# Database location - keep this local, not on network storage
+DB_DATA_LOCATION=./postgres
+
+# Set your timezone
+TZ=America/New_York
+
+# Immich version - v2 is the current stable release
+IMMICH_VERSION=v2
+
+# Database password - CHANGE THIS to something secure
+DB_PASSWORD=your-secure-random-password-here
+
+# These don't need to change
+DB_USERNAME=postgres
+DB_DATABASE_NAME=immich
+```
+
+:::warning[Important: Database Location]
+Never put `DB_DATA_LOCATION` on a network share (NFS, SMB). PostgreSQL requires local filesystem access. Your photos can go anywhere, but keep the database local.
+:::
+
+### Step 4: Start the Containers
+
+```bash
+docker compose up -d
+```
+
+This pulls and starts:
+- **immich-server:** Main application
+- **immich-machine-learning:** AI features (face recognition, smart search)
+- **immich-redis:** Caching and job queue
+- **immich-postgres:** Metadata database
+
+### Step 5: Access the Web UI
+
+Navigate to `http://<your-server-ip>:2283` and click "Getting Started."
+
+**The first user to register becomes the admin.** This is your admin account, so use a strong password.
+
+---
+
+## Mobile App Setup
+
+Immich shines with its mobile apps—available on iOS, Android, and F-Droid.
+
+### Download Options
+
+- **Google Play Store:** Search "Immich"
+- **Apple App Store:** Search "Immich"
+- **F-Droid:** For the privacy-pure option
+- **GitHub Releases:** Direct APK download
+- **Obtainium:** Auto-update directly from GitHub
+
+### First-Time Setup
+
+1. Open the app
+2. Enter your server URL: `http://<your-server-ip>:2283`
+3. Log in with your admin credentials
+4. Grant photo library access when prompted
+
+### Configuring Automatic Backup
+
+Tap the cloud icon in the top-right to access backup settings:
+
+```yaml
+Backup Options:
+  - Select specific albums or "All Photos"
+  - Choose Wi-Fi only or allow cellular
+  - Enable background backup
+  - Set backup frequency
+```
+
+:::tip[Pro Tip: Initial Upload]
+If you have thousands of photos, the initial backup will take time. Start with a small album to test, then enable full backup overnight. You can monitor progress in the server's Job Status.
+:::
+
+---
+
+## AI Features: Face Recognition and Smart Search
+
+This is where Immich genuinely competes with the big players.
+
+### Face Recognition
+
+Immich automatically detects faces in your photos and groups them by person:
+
+1. Navigate to **People** in the sidebar
+2. Review detected faces
+3. Assign names to people
+4. Immich learns and improves over time
+
+You can also manually tag faces—useful when the AI misses someone or groups incorrectly.
+
+### Smart Search
+
+This is the "find photos of dogs at sunset" feature, and it works remarkably well:
+
+```
+Search examples that work:
+  - "beach sunset"
+  - "birthday party"
+  - "my dog"
+  - "screenshot"
+  - "document"
+```
+
+Behind the scenes, Immich uses CLIP models to understand image content semantically. The magic? **All processing happens locally on your server.**
+
+### Duplicate Detection
+
+Immich finds similar photos and lets you decide what to keep:
+
+1. Go to **Utilities > Duplicates**
+2. Review detected duplicates
+3. Keep or delete each group
+
+Unlike Google Photos which might auto-delete, Immich asks for your approval first. No accidental data loss.
+
+---
+
+## GPU Acceleration for Machine Learning
+
+If you have a GPU, enabling hardware acceleration significantly speeds up ML tasks.
+
+### NVIDIA (CUDA)
+
+For NVIDIA GPUs with compute capability 5.2+:
+
+```bash
+# Download hardware acceleration config
+wget -O hwaccel.ml.yml https://github.com/immich-app/immich/releases/latest/download/hwaccel.ml.yml
+```
+
+Then edit your `docker-compose.yml`:
+
+```yaml
+immich-machine-learning:
+  container_name: immich_machine_learning
+  image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-cuda
+  extends:
+    file: hwaccel.ml.yml
+    service: cuda
+  volumes:
+    - model-cache:/cache
+  env_file:
+    - .env
+```
+
+:::note[Prerequisites]
+- NVIDIA driver 545+ (CUDA 12.3 support)
+- NVIDIA Container Toolkit installed
+:::
+
+### Intel (OpenVINO)
+
+For Intel integrated or discrete GPUs:
+
+```yaml
+immich-machine-learning:
+  image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-openvino
+  extends:
+    file: hwaccel.ml.yml
+    service: openvino
+```
+
+### Raspberry Pi / Rockchip (RKNN)
+
+For ARM boards like Orange Pi or Radxa:
+
+```yaml
+immich-machine-learning:
+  image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-rknn
+  extends:
+    file: hwaccel.ml.yml
+    service: rknn
+```
+
+### Confirm It's Working
+
+Check GPU utilization during face detection jobs:
+
+```bash
+# NVIDIA
+nvidia-smi
+
+# Intel
+intel_gpu_top
+
+# AMD
+radeontop
+```
+
+Or check the ML container logs:
+
+```bash
+docker logs immich_machine_learning | grep -i cuda
+# Should show: Available ORT providers: ['CUDAExecutionProvider', ...]
+```
+
+---
+
+## Migrating from Google Photos
+
+If you're switching from Google Photos, here's how to bring your library with you.
+
+### Option 1: Google Takeout + immich-go
+
+**Step 1: Export from Google**
+
+1. Go to [Google Takeout](https://takeout.google.com/)
+2. Select only "Photos"
+3. Choose delivery method and format
+4. Wait for the export (can take days for large libraries)
+
+**Step 2: Import with immich-go**
+
+[immich-go](https://github.com/simulot/immich-go) is a specialized tool for Google Takeout imports:
+
+```bash
+# Download immich-go
+wget https://github.com/simulot/immich-go/releases/download/v0.24.0/immich-go_Linux_x86_64.tar.gz
+tar -xzf immich-go_Linux_x86_64.tar.gz
+
+# Run the import
+./immich-go upload \
+  --server http://your-server:2283 \
+  --api-key YOUR_API_KEY \
+  --from /path/to/takeout
+```
+
+This preserves albums, dates, and metadata from your Google Photos library.
+
+### Option 2: Direct Upload via Web UI
+
+For smaller libraries:
+
+1. In Immich web UI, go to **Upload**
+2. Drag and drop photos/videos
+3. Use folder structure to organize
+
+### Option 3: External Library
+
+If your photos are already organized on a drive:
+
+1. Go to **Administration > Libraries**
+2. Create an external library
+3. Point to your existing photo directory
+
+Immich will scan and import without duplicating files.
+
+---
+
+## Backup Strategy
+
+Self-hosting means you're responsible for backups. Here's how to protect your memories.
+
+### What to Back Up
+
+| Component | Backup Method |
+|-----------|---------------|
+| Photos/Videos (`UPLOAD_LOCATION`) | File-level backup to remote storage |
+| Database (`DB_DATA_LOCATION`) | Immich's built-in backup or pg_dump |
+| `.env` file | Keep a copy in a password manager |
+
+### Immich's Built-In Database Backup
+
+Immich automatically backs up the database. Configure in **Administration > Settings > Backup**:
+
+- Backup frequency
+- Retention period
+- Storage location
+
+:::warning[Crucial Reminder]
+The database contains **metadata only** (albums, tags, face data). Your actual photos live in `UPLOAD_LOCATION`. You must back up both independently.
+:::
+
+### Recommended Backup Setup
+
+```bash
+# Example: Daily backup to a remote NAS
+0 3 * * * rsync -av /mnt/photos-library/ backup-nas:/backups/immich-photos/
+0 4 * * * docker exec immich_postgres pg_dump -U postgres immich > /backups/immich-db-$(date +\%Y\%m\%d).sql
+```
+
+---
+
+## What's Coming in 2026
+
+The Immich team has ambitious plans. Here's what's on the roadmap:
+
+### Near-Term Features
+- **Built-in image editor** (most requested!)
+- Workflows for automation
+- Database restore from web UI
+- Integrity check tools
+
+### 2025 Achievements (Context for What's Next)
+
+The team shipped 85 new features in 2025:
+- HDR video support
+- Search by tags and descriptions
+- Manual face tagging
+- Persistent memories
+- OCR for text in images
+- Google Cast support
+- Private/locked photos
+- "View similar photos" discovery
+
+Version 2.0 (October 2025) was a major milestone—a complete rewrite of the sync infrastructure and mobile app, making the experience butter-smooth.
+
+---
+
+## Platform Compatibility
+
+Immich runs on almost anything:
+
+| Platform | Support Level |
+|----------|---------------|
+| Docker | ✅ Primary method |
+| TrueNAS | ✅ Built-in container app |
+| Unraid | ✅ Community template |
+| Proxmox | ✅ LXC/VM |
+| CasaOS | ✅ App store |
+| Kubernetes | ✅ Helm charts available |
+| Raspberry Pi | ✅ ARM supported |
+| Synology | ⚠️ Docker required |
+
+---
+
+## Troubleshooting Common Issues
+
+### Photos Not Uploading from Mobile
+
+1. Check server URL in app settings
+2. Verify background backup is enabled
+3. Ensure app has photo library permissions
+4. Check server logs: `docker logs immich_server`
+
+### Face Recognition Not Working
+
+1. Verify ML container is running: `docker ps | grep immich`
+2. Check ML logs: `docker logs immich_machine_learning`
+3. Trigger manual scan: Administration > Jobs > Face Detection
+
+### Slow Performance
+
+1. **Low RAM:** Disable some ML features or use lighter models
+2. **CPU bottleneck:** Enable GPU acceleration
+3. **Database on network storage:** Move to local SSD
+4. **Large library:** Increase job concurrency in settings
+
+### Can't Access Web UI
+
+1. Check container status: `docker compose ps`
+2. Verify port 2283 isn't blocked by firewall
+3. Check for port conflicts: `sudo lsof -i :2283`
+
+---
+
+## The Bottom Line
+
+Immich represents a genuine paradigm shift in personal photo management.
+
+For years, we've traded privacy for convenience—uploading our most personal memories to servers we don't control, accepting subscription fees for our own data, and hoping companies don't change their policies.
+
+Immich flips that equation. You get:
+- **Complete privacy** — Your photos never leave your network
+- **No subscriptions** — Your storage is your own
+- **Full control** — Customize, extend, and own your setup
+- **Feature parity** — Everything Google Photos offers, locally
+
+And with the v2.0 release in late 2025, Immich has reached the maturity where your family will actually use it. That's the real test, and Immich passes.
+
+If you have a homelab—even a small one—Immich deserves a spot in your setup. Your memories are worth it.
+
+---
+
+## Quick Reference
+
+### Important URLs
+- Documentation: https://docs.immich.app/
+- GitHub: https://github.com/immich-app/immich
+- Community: https://discord.gg/immich
+- immich-go (migration tool): https://github.com/simulot/immich-go
+
+### Port Reference
+- Web UI: 2283
+- ML Service: 3003 (internal)
+
+### Useful Commands
+```bash
+# View logs
+docker compose logs -f
+
+# Restart services
+docker compose restart
+
+# Update to latest
+docker compose pull && docker compose up -d
+
+# Check GPU usage
+nvidia-smi -l 1
+```
+
+---
+
+*Happy self-hosting. Your photos, your rules.*

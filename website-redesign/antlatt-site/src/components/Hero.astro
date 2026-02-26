@@ -2,24 +2,41 @@
 interface Props {
   title: string;
   subtitle?: string;
+  backgroundImage?: string;
 }
 
-const { title, subtitle } = Astro.props;
+const { title, subtitle, backgroundImage } = Astro.props;
 ---
 
 <section class="relative overflow-hidden border-b border-border">
-  <!-- Gradient background -->
-  <div class="absolute inset-0 bg-gradient-to-br from-accent/10 via-bg to-code/5 pointer-events-none"></div>
+  <!-- Background image (if provided) -->
+  {backgroundImage ? (
+    <div class="absolute inset-0">
+      <img 
+        src={backgroundImage} 
+        alt="" 
+        class="w-full h-full object-cover"
+        loading="eager"
+      />
+      <!-- Gradient overlay for text readability - adjusted for darker hero images -->
+      <div class="absolute inset-0 bg-gradient-to-r from-bg/90 via-bg/60 to-bg/25"></div>
+    </div>
+  ) : (
+    <!-- Fallback gradient background -->
+    <div class="absolute inset-0 bg-gradient-to-br from-accent/10 via-bg to-code/5 pointer-events-none"></div>
+  )}
   
   <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32">
-    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4">
-      <span class="gradient-text">{title}</span>
-    </h1>
-    {subtitle && (
-      <p class="text-xl sm:text-2xl text-text-muted max-w-2xl">
-        {subtitle}
-      </p>
-    )}
-    <slot />
+    <div class={backgroundImage ? "max-w-2xl" : ""}>
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4">
+        <span class="gradient-text">{title}</span>
+      </h1>
+      {subtitle && (
+        <p class="text-xl sm:text-2xl text-text-muted max-w-2xl">
+          {subtitle}
+        </p>
+      )}
+      <slot />
+    </div>
   </div>
 </section>

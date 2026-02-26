@@ -5,20 +5,27 @@ interface Props {
   seriesName: string;
   currentSlug: string;
   currentOrder: number;
+  collection?: 'builds' | 'blog';
 }
 
-const { seriesName, currentSlug, currentOrder } = Astro.props;
+const { seriesName, currentSlug, currentOrder, collection = 'builds' } = Astro.props;
 
-// Get all builds in this series, sorted by order
-const allBuilds = await getCollection('builds');
-const seriesBuilds = allBuilds
-  .filter(b => b.data.series?.name === seriesName)
+// Get all items in this series from the appropriate collection, sorted by order
+const allItems = collection === 'blog' 
+  ? await getCollection('blog')
+  : await getCollection('builds');
+
+const seriesItems = allItems
+  .filter(item => item.data.series?.name === seriesName)
   .sort((a, b) => (a.data.series?.order || 0) - (b.data.series?.order || 0));
 
-const totalParts = seriesBuilds.length;
-const currentIndex = seriesBuilds.findIndex(b => b.slug === currentSlug);
-const prevInSeries = currentIndex > 0 ? seriesBuilds[currentIndex - 1] : null;
-const nextInSeries = currentIndex < seriesBuilds.length - 1 ? seriesBuilds[currentIndex + 1] : null;
+const totalParts = seriesItems.length;
+const currentIndex = seriesItems.findIndex(item => item.slug === currentSlug);
+const prevInSeries = currentIndex > 0 ? seriesItems[currentIndex - 1] : null;
+const nextInSeries = currentIndex < seriesItems.length - 1 ? seriesItems[currentIndex + 1] : null;
+
+// Generate URL path based on collection type
+const basePath = collection === 'blog' ? '/blog' : '/builds';
 
 // Generate a slug from series name
 const seriesSlug = seriesName.toLowerCase().replace(/\s+/g, '-');

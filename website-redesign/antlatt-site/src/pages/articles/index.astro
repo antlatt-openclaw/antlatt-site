@@ -1,0 +1,183 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Card from '../../components/Card.astro';
+import { getCollection } from 'astro:content';
+
+// Fetch both collections
+const builds = await getCollection('builds');
+const blogPosts = await getCollection('blog', ({ data }) => !data.draft);
+
+// Helper to calculate reading time
+function calculateReadingTime(body: string | undefined): number {
+  if (!body) return 0;
+  const wordsPerMinute = 225;
+  const plainText = body.replace(/[#*`\[\]]/g, '').trim();
+  const wordCount = plainText.split(/\s+/).filter(w => w.length > 0).length;
+  return Math.ceil(wordCount / wordsPerMinute);
+}
+
+// Normalize all articles with type and reading time
+const allArticles = [
+  ...builds.map(build => ({
+    type: 'Build' as const,
+    slug: build.slug,
+    data: build.data,
+    body: build.body,
+    href: `/builds/${build.slug}`,
+    readingTime: calculateReadingTime(build.body)
+  })),
+  ...blogPosts.map(post => ({
+    type: 'Blog' as const,
+    slug: post.slug,
+    data: post.data,
+    body: post.body,
+    href: `/blog/${post.slug}`,
+    readingTime: calculateReadingTime(post.body)
+  }))
+];
+
+// Sort by date (newest first)
+const sortedArticles = allArticles.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+// Get all unique tags
+const allTags = [...new Set(sortedArticles.flatMap(a => a.data.tags || []))].sort();
+---
+
+<BaseLayout title="Articles | ANTLATT.COM" description="All builds, projects, tutorials, and articles in one place.">
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <h1 class="text-4xl font-bold mb-4">Articles</h1>
+    <p class="text-text-muted text-lg mb-8">
+      All builds, projects, tutorials, and thoughts in one place.
+    </p>
+
+    <!-- Type & Tag Filters -->
+    <div class="filters-container mb-8">
+      <!-- Type Filter -->
+      <div class="filter-group mb-4">
+        <span class="text-sm text-text-muted mr-3">Type:</span>
+        <div class="inline-flex gap-2">
+          <button class="type-btn active" data-type="all">All</button>
+          <button class="type-btn" data-type="build">Builds</button>
+          <button class="type-btn" data-type="blog">Blog</button>
+        </div>
+      </div>
+
+      <!-- Tag Filter -->
+      <div class="tag-filters flex flex-wrap gap-2">
+        <span class="text-sm text-text-muted mr-2 self-center">Tags:</span>
+        <button class="tag-btn active" data-tag="all">All</button>
+        {allTags.map(tag => (
+          <button class="tag-btn" data-tag={tag.toLowerCase().replace(/\s+/g, '-')}>{tag}</button>
+        ))}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="articles-grid">
+      {sortedArticles.map((article) => (
+        <div 
+          class="article-card" 
+          data-type={article.type.toLowerCase()}
+          data-tags={(article.data.tags || []).map(t => t.toLowerCase().replace(/\s+/g, '-')).join(',')}
+        >
+          <Card
+            title={article.data.title}
+            description={article.data.description}
+            href={article.href}
+            image={article.data.image}
+            tags={[article.type, ...article.data.tags || []]}
+            date={article.data.date.toISOString()}
+            readingTime={article.readingTime}
+          />
+        </div>
+      ))}
+    </div>
+
+    {sortedArticles.length === 0 && (
+      <p class="text-text-muted text-center py-16">No articles yet. Check back soon!</p>
+    )}
+  </section>
+</BaseLayout>
+
+<style>
+  .filters-container {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border, #2a2a3e);
+    margin-bottom: 2rem;
+  }
+  
+  .type-btn, .tag-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid var(--border, #2a2a3e);
+    background: transparent;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .type-btn:hover, .tag-btn:hover {
+    border-color: var(--accent, #a78bfa);
+    color: var(--text, #fff);
+  }
+  
+  .type-btn.active, .tag-btn.active {
+    background: var(--accent, #a78bfa);
+    border-color: var(--accent, #a78bfa);
+    color: #000;
+  }
+  
+  .article-card.hidden {
+    display: none;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+</style>
+
+<script>
+  const typeButtons = document.querySelectorAll('.type-btn');
+  const tagButtons = document.querySelectorAll('.tag-btn');
+  const articleCards = document.querySelectorAll('.article-card');
+
+  let activeType = 'all';
+  let activeTag = 'all';
+
+  function filterArticles() {
+    articleCards.forEach(card => {
+      const cardType = card.getAttribute('data-type') || '';
+      const cardTags = (card.getAttribute('data-tags') || '').split(',');
+      
+      const typeMatch = activeType === 'all' || cardType === activeType;
+      const tagMatch = activeTag === 'all' || cardTags.includes(activeTag);
+      
+      if (typeMatch && tagMatch) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  }
+
+  typeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      typeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeType = btn.getAttribute('data-type') || 'all';
+      filterArticles();
+    });
+  });
+
+  tagButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tagButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeTag = btn.getAttribute('data-tag') || 'all';
+      filterArticles();
+    });
+  });
+</script>

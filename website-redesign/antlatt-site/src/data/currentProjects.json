@@ -2,16 +2,19 @@
   {
     "title": "Website Redesign",
     "status": "in-progress",
-    "description": "Migrating to Astro with improved performance and SEO"
+    "description": "Migrating to Astro with improved performance and SEO. New design, faster loads, the works.",
+    "link": "/builds/"
   },
   {
     "title": "True-Recall Memory System",
     "status": "testing",
-    "description": "AI-powered persistent memory for conversations using vector databases"
+    "description": "JARVIS-like persistent memory for AI conversations. Vector databases, context windows, the whole stack.",
+    "link": "/blog/"
   },
   {
     "title": "Homelab Infrastructure",
     "status": "ongoing",
-    "description": "Server rack build with Proxmox, Docker, and 10G networking"
+    "description": "Always evolving. Proxmox, Docker, 10G networking, and more containers than I should probably admit to.",
+    "link": "/lab"
   }
 ]

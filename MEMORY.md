@@ -13,37 +13,9 @@
 
 - **Primary Contact**: Anthony Lattanzio
 - **Telegram**: 8570577057 (primary channel)
-- **Slack**: User ID `U0AGQEN4162`, Bot ID `U0AGB352N95`
 - **Email**: antlatt@gmail.com, antlatt.openclaw@gmail.com
 - **Timezone**: America/New_York (EST)
 
-## Slack Integration
-
-- **App Name**: OpenClaw
-- **Mode**: Socket Mode (WebSocket connection, no public endpoint needed)
-- **User ID**: `U0AGQEN4162`
-- **Bot ID**: `U0AGB352N95`
-- **DM Channel ID**: `D0AH643EWBB`
-- **Workspace**: `T0AGQEHDSB0`
-
-### Required Scopes
-- `chat:write`, `im:write`, `im:history`, `im:read`
-- `channels:history`, `channels:read`, `groups:history`, `groups:read`
-- `mpim:history`, `mpim:read`, `users:read`, `reactions:write`, `files:write`
-
-### Required Events (Event Subscriptions)
-- `message.im` - DMs to the bot
-- `message.channels` - Channel messages
-- `message.groups` - Private channel messages
-
-### Setup Checklist
-1. Create Slack App at api.slack.com
-2. Enable Socket Mode, generate App-Level Token
-3. Add Bot Token Scopes
-4. Subscribe to bot events (`message.im`, etc.)
-5. Enable App Home → Messages Tab
-6. Install to Workspace
-7. Add user ID to allowFrom in config
 
 ## Infrastructure
 
@@ -85,10 +57,27 @@ Group ID: `-1003850499454`
 
 ## Agents
 
-| Agent | Purpose |
-|-------|---------|
-| main | General assistant (this agent) |
-| hallie | Coding specialist, background execution, spawns subagents |
+| Agent | Purpose | Model |
+|-------|---------|-------|
+| main | General assistant (this agent) | glm-5:cloud |
+| hallie | Coding specialist, background execution, spawns subagents | - |
+| sarah | Research specialist - web search, memory recall, fact gathering | glm-5:cloud |
+| caitlin | Article writing specialist - drafts, edits, MDX content | glm-5:cloud |
+| renee | Image generation specialist (ComfyUI, SDXL, prompts) | glm-5:cloud |
+| beatrice | Website deployment specialist - Astro, Tailwind, Docker | qwen3-coder-next:cloud |
+
+## Article Pipeline
+
+Multi-agent workflow for creating blog content:
+
+```
+Sarah (research) → Caitlin (write) → Renee (images) → Review → Beatrice (deploy)
+```
+
+- **Skill**: `skills/article-pipeline/SKILL.md`
+- **Drafts folder**: `website-redesign/antlatt-site/drafts/`
+- **Notification**: Telegram when ready for review
+- **Approval**: User must approve before deploy
 
 ## Website Redesign (antlatt.com)
 

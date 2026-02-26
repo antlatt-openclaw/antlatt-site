@@ -35,4 +35,22 @@ const builds = defineCollection({
   }),
 });
 
-export const collections = { builds };
+const blog = defineCollection({
+  type: 'content',
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    date: z.coerce.date(),
+    image: z.string().optional(),
+    tags: z.array(z.string()).default([]),
+    draft: z.boolean().default(false),
+    featured: z.boolean().default(false),
+    // Series/Collection support (same as builds)
+    series: z.object({
+      name: z.string(),
+      order: z.number(),
+    }).optional(),
+  }),
+});
+
+export const collections = { builds, blog };

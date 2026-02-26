@@ -1,14 +1,23 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
+import PhotoSlideshow from '../components/PhotoSlideshow.astro';
 ---
 
 <BaseLayout title="About | ANTLATT.COM" description="About Anthony Lattanzio - tech enthusiast, builder, and homelab operator.">
   <Hero title="About Me" />
 
-  <section class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    <div class="prose">
-      <h2>Hey, I'm Anthony.</h2>
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <!-- Photo Gallery Section -->
+    <div class="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
+      <!-- Slideshow Column -->
+      <div class="w-full lg:w-2/5 flex-shrink-0">
+        <PhotoSlideshow />
+      </div>
+      
+      <!-- Content Column -->
+      <div class="flex-1 prose prose-lg">
+        <h2>Hey, I'm Anthony.</h2>
       
       <p>
         I'm a tech enthusiast who likes to build things. If it involves hardware, software, 
@@ -63,12 +72,22 @@ import Hero from '../components/Hero.astro';
         all my infrastructure.
       </p>
 
+      <h2>Experiments & Side Projects</h2>
+      
+      <p>
+        Not everything fits neatly into "homelab" or "builds." Sometimes I go down rabbit holes 
+        that lead to <a href="/deepfakes">AI-powered deepfake experiments</a> — face swaps, 
+        movie recasts, and learning how neural networks process faces. It's the same spirit of 
+        curiosity, just with more GPU hours.
+      </p>
+
       <h2>Get In Touch</h2>
       
       <p>
         Questions about a project? Want to collaborate? Just want to say hi?
         Head over to the <a href="/contact">contact page</a> or find me on the links below.
       </p>
+      </div>
     </div>
   </section>
 </BaseLayout>

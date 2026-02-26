@@ -1,0 +1,223 @@
+---
+title: "Build a $100 AI Agent Server: Run OpenClaw on Raspberry Pi 24/7"
+description: "Learn how to transform a Raspberry Pi into a 24/7 AI assistant with OpenClaw. Affordable, private, and always-on AI for under $1/month in electricity."
+date: 2025-02-25
+image: "/images/blog/raspberry-pi-ai-agent/hero.jpg"
+tags: [AI, Raspberry Pi, OpenClaw, Tutorial, DIY]
+draft: false
+---
+
+# Build a $100 AI Agent Server: Run OpenClaw on Raspberry Pi 24/7
+
+Imagine having a personal AI assistant that's always available, completely private, and costs less than a dollar a month to run. Sound too good to be true? With OpenClaw and a Raspberry Pi, it's entirely possible—and I'm going to show you exactly how to build one.
+
+## Why Run an AI Agent on Raspberry Pi?
+
+The concept is simple but powerful: turn a $100 piece of hardware into a 24/7 AI-powered assistant that lives in your home. No cloud subscriptions eating your data, no monthly fees, no privacy concerns about your conversations being stored on someone else's servers.
+
+Here's what makes this setup compelling:
+
+- **24/7 Availability**: Your AI assistant never sleeps. It's ready to help at 3 AM or 3 PM.
+- **Ultra-Low Power**: The Raspberry Pi draws about 5 watts—roughly the same as a phone charger. That translates to $0.43-$1.01 per month in electricity costs.
+- **Complete Privacy**: Every conversation, every task, every piece of data stays on your network. Nothing leaves your home.
+- **Compact & Quiet**: The Pi is credit-card sized and can run silently with passive cooling. Tuck it in a drawer and forget it's there.
+
+## What is OpenClaw?
+
+![Raspberry Pi Server Setup](/images/blog/raspberry-pi-ai-agent/raspberry-pi.jpg)
+
+OpenClaw is an open-source AI agent framework that's been making waves in the developer community. Originally created as a weekend project by Peter Steinberger, it has grown to over 68,000 GitHub stars—and for good reason.
+
+Unlike a simple chatbot, OpenClaw gives AI models real agency. It can:
+
+- Execute shell commands and write code
+- Connect to Telegram, Discord, Slack, Signal, and WhatsApp
+- Integrate with tools like GitHub, Home Assistant, Notion, and Google Calendar
+- Run scheduled tasks (cron jobs) for automated workflows
+- Maintain persistent memory across conversations
+
+Think of it as giving an LLM a computer to control. The AI doesn't just answer questions—it actually *does* things.
+
+## Hardware You'll Need
+
+Let's talk about the physical components. You don't need much, but choosing the right hardware makes the difference between a smooth experience and constant frustration.
+
+### The Raspberry Pi Itself
+
+**Recommended: Raspberry Pi 5 (8GB)**
+
+The 8GB model is the sweet spot for running OpenClaw. At around $80, it provides enough RAM for:
+- Loading AI models with decent context windows
+- Running multiple agents simultaneously
+- Handling background skills without memory pressure
+
+**Budget Option: Raspberry Pi 4 (8GB or 4GB)**
+
+The Pi 4 8GB works great for most use cases. The 4GB model is viable for single-user, basic setups but you'll feel the limits with heavier workloads.
+
+### Storage: Skip the SD Card (Eventually)
+
+Here's a tip many tutorials miss: SD cards die. The constant writes from logs, memory files, and transcripts will corrupt your card within months.
+
+**Best Options:**
+1. **USB SSD ($25-40)**: Plug in a small USB 3.0 SSD. Fast, reliable, and survives years of writes.
+2. **NVMe via HAT ($40-60)**: For the Pi 5, you can use an NVMe HAT for the fastest possible I/O. Worth it for production setups.
+
+If you must use an SD card initially, upgrade to SSD as soon as you can.
+
+### Power Supply: Don't Cheap Out
+
+This is critical. Many unexplained crashes come from inadequate power. The Pi 5 needs a 5V 5A USB-C supply—the official white power supply from Raspberry Pi. The Pi 4 needs 5V 3A.
+
+Generic phone chargers are NOT sufficient. During AI inference, the Pi can spike to 15-20W, and underpowered supplies cause random reboots. Spend the extra $4 for the official PSU.
+
+### Cooling
+
+For 24/7 operation, add active cooling. The Pi 5 throttles at 85°C, and AI workloads generate sustained heat. A cheap case with a 5V fan or the official Raspberry Pi Active Cooler will keep temperatures in the safe zone.
+
+## Installation: From Zero to Running
+
+![AI Automation](/images/blog/raspberry-pi-ai-agent/ai-automation.jpg)
+
+Here's the streamlined path to get OpenClaw running on your Pi.
+
+### Step 1: Flash the OS
+
+Use Raspberry Pi Imager to flash **Raspberry Pi OS (64-bit) Lite** onto your SD card or SSD. The Lite version is perfect—no desktop environment needed for a headless server.
+
+During setup, configure:
+- SSH access (enable it)
+- Username and password
+- Wi-Fi credentials (or use Ethernet for reliability)
+
+### Step 2: Install Node.js
+
+OpenClaw requires Node.js 20 or later. SSH into your Pi and run:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash -
+sudo apt install -y nodejs
+node --version  # Should show v22.x
+```
+
+### Step 3: Run the Installer
+
+OpenClaw provides a one-line installer that handles everything:
+
+```bash
+curl -sSL https://get.moltbot.org/install-pi.sh | bash
+```
+
+This script:
+- Clones the OpenClaw repository
+- Installs all dependencies
+- Creates a systemd service for auto-start
+- Provides pairing instructions
+
+### Step 4: Pair Your Device
+
+Start the service and check logs for your pairing code:
+
+```bash
+sudo systemctl start moltbot
+sudo journalctl -u moltbot -f
+```
+
+You'll see output like:
+```
+Your pairing code: ABC-123-DEF
+Visit https://get.moltbot.org/pair to complete setup
+```
+
+Visit the URL, enter your code, and your Pi is now connected.
+
+### Step 5: Enable on Boot
+
+```bash
+sudo systemctl enable moltbot
+```
+
+Your AI assistant will now start automatically whenever the Pi boots.
+
+## What Works Great on a Pi
+
+Not everything translates well to ARM processors, but OpenClaw's core features shine on the Pi:
+
+**Messaging Channels**: Telegram, Discord, Slack, Signal, WhatsApp—all work flawlessly. Your Pi becomes a messaging hub for AI assistance.
+
+**Text-Based Skills**: Web search, email management, calendar operations, note-taking. These are lightweight and responsive.
+
+**Scheduled Tasks**: Morning briefings, periodic checks, automated reminders. Set up cron-style triggers and let your Pi handle them 24/7.
+
+**Memory System**: Persistent conversations, daily notes, long-term context. Your AI remembers across sessions.
+
+**Multi-Agent Setups**: Run 3-5 specialized agents simultaneously. One for coding, one for research, one for home automation.
+
+## What Doesn't Work (Yet)
+
+Be realistic about the Pi's limitations:
+
+- **Browser Automation**: Chromium crawls on ARM. If you need web automation, use the `web_fetch` tool instead of full browser control.
+- **Local AI Models (Ollama)**: The Pi can technically run small models, but inference is painfully slow. Stick to cloud APIs (Claude, GPT, etc.) for now.
+- **Heavy File Processing**: Large PDF analysis, video transcoding—offload these to more powerful machines.
+- **Apple Ecosystem**: iMessage, Apple Notes, and Shortcuts integration requires macOS. If you need these, a Mac mini is your alternative.
+
+## Security: A Word of Caution
+
+Running an AI agent with shell access requires careful consideration. Large Language Models can be tricked through prompt injection, potentially leading to unintended command execution.
+
+**Best practices:**
+1. Don't give OpenClaw access to sensitive APIs or unlimited spending
+2. Use dedicated accounts (e.g., a separate GitHub account for the agent)
+3. Read and follow the security documentation at docs.openclaw.ai
+4. Consider what data the agent can access before connecting it to your personal accounts
+
+This is cutting-edge technology—treat it with appropriate caution.
+
+## Performance Optimization Tips
+
+Once you're running, these tweaks improve stability:
+
+**Add Swap Space**
+```bash
+sudo dphys-swapfile swapoff
+sudo sed -i 's/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/' /etc/dphys-swapfile
+sudo dphys-swapfile setup
+sudo dphys-swapfile swapon
+```
+
+**Log Rotation** (prevents disk filling)
+```bash
+sudo tee /etc/logrotate.d/openclaw > /dev/null << 'EOF'
+/home/pi/.openclaw/workspace/*.jsonl {
+ weekly
+ rotate 4
+ compress
+ missingok
+ notifempty
+}
+EOF
+```
+
+**Monitor Temperature**
+```bash
+vcgencmd measure_temp
+```
+
+If you're consistently above 70°C, improve your cooling solution.
+
+## The Bottom Line
+
+A Raspberry Pi running OpenClaw isn't the most powerful AI setup you can build, but it might be the most practical. For roughly $100 in hardware and less than $1 per month in electricity, you get:
+
+- A 24/7 personal AI assistant
+- Complete data privacy
+- Telegram/Discord/Slack integration
+- Automated workflows and scheduled tasks
+- Persistent memory and context
+
+It's an AI assistant for the price of a nice dinner. And unlike a cloud service, you own it completely.
+
+Start with a Pi 5 (8GB), a USB SSD, and the official power supply. Flash the OS, run the installer, pair your device. In under an hour, you'll have an always-on AI brain living in your home.
+
+Welcome to the future of personal AI infrastructure.

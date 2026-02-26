@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import hashlib
+import uuid
 from datetime import datetime
 
 try:
@@ -49,8 +50,10 @@ def get_embedding(text: str) -> list:
     return None
 
 def generate_id(content: str) -> str:
-    """Generate unique ID from content hash."""
-    return hashlib.sha256(content.encode()).hexdigest()
+    """Generate unique UUID from content hash (deterministic for deduplication)."""
+    # Create SHA256 hash and convert first 16 bytes to UUID
+    hash_bytes = hashlib.sha256(content.encode()).digest()[:16]
+    return str(uuid.UUID(bytes=hash_bytes))
 
 def backup_redis_to_qdrant(user_id: str, clear_after: bool = True):
     """Move all Redis memories to Qdrant."""

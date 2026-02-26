@@ -1,0 +1,286 @@
+---
+title: "ZFS AnyRaid: Mixed-Size Drives Finally Come to ZFS"
+description: "ZFS AnyRaid brings mixed-size drive support to OpenZFS, making it a real competitor to Unraid for homelab NAS builds. Here's what you need to know."
+date: 2026-02-25
+tags: ["zfs", "storage", "nas", "homelab"]
+image: "/images/blog/zfs-anyraid-mixed-drives/hero.webp"
+---
+
+If you've ever tried to build a ZFS NAS on a budget, you've probably run into **the mixed-drive problem**. You've got a 4TB drive from an old PC, a 6TB you grabbed on sale, and maybe a fresh 8TB for your growing media collection. In the ZFS world, those extra terabytes on your larger drives? Dead space. Wasted.
+
+For years, the advice has been simple: *buy matching drives or accept the loss*. But that advice ignores reality. Real people upgrade incrementally. Real people shop sales. Real people repurpose old hardware.
+
+**ZFS AnyRaid is here to fix that.**
+
+## The Problem: ZFS Hates Your Mismatched Drives
+
+Traditional ZFS has a simple but brutal rule: all drives in a VDEV operate at the size of the smallest disk. This isn't a bug—it's a fundamental design choice that dates back to ZFS's enterprise origins.
+
+Let's say you've got this setup:
+
+```
+Pool: mediavault
+├── vdev: raidz1
+│   ├── sda: 3TB
+│   ├── sdb: 3TB  
+│   ├── sdc: 5TB  ← 2TB wasted
+│   └── sdd: 5TB  ← 2TB wasted
+```
+
+In a traditional RAID-Z1, ZFS treats this as **four 3TB drives**. Those 5TB drives might as well be 3TB units. You've paid for 16TB of raw storage, but you're only using 12TB.
+
+```bash
+# What you'd see with traditional ZFS
+$ zpool list -v mediavault
+NAME        SIZE   ALLOC   FREE
+mediavault  10.8T  4.2T    6.6T
+  raidz1    10.8T  4.2T    6.6T
+```
+
+Want to upgrade? You can't just swap one drive. You need to replace **all drives in the VDEV** before you see any capacity increase. That's the kind of upgrade that requires planning, budget, and patience—luxuries many homelabbers don't have.
+
+> **Why does ZFS do this?** It's about predictability. ZFS stripes data across all drives in a VDEV, and that stripe pattern is set at VDEV creation. Changing it requires rewriting everything. Enterprise environments plan storage in matched sets, so this wasn't a priority—until now.
+
+## Enter AnyRaid: Tiles Change Everything
+
+ZFS AnyRaid introduces a completely new way to think about storage allocation. Instead of treating each physical disk as a monolithic unit, AnyRaid **breaks drives into 64GB "tiles"**.
+
+Here's how it works:
+
+### The Tile Concept
+
+![AnyRaid splits drives into 64GB tiles for flexible allocation](/images/blog/zfs-anyraid-mixed-drives/tiles-diagram.webp)
+
+```
+Physical Drives                    Logical Tiles
+┌─────────────────┐               ┌──┬──┬──┬──┬──┬──┐
+│   6TB Drive     │    ───────►   │T1│T2│T3│...│95│96│  (96 tiles)
+└─────────────────┘               └──┴──┴──┴──┴──┴──┘
+
+┌─────────────────┐               ┌──┬──┬──┬──┬──┐
+│   3TB Drive     │    ───────►   │T1│T2│T3│...│48│    (48 tiles)
+└─────────────────┘               └──┴──┴──┴──┴──┘
+```
+
+Each tile becomes a **logical unit** that ZFS can manage independently. When you write data, ZFS allocates tiles across your drives, ensuring redundancy by mirroring tiles on different physical devices.
+
+### Why 64GB?
+
+The tile size is a calculated trade-off:
+
+- **Small enough** to allow fine-grained allocation across mixed drives
+- **Large enough** to keep metadata overhead manageable
+- **Divisible** efficiently across common drive sizes
+
+```bash
+# Conceptual view of tile allocation
+# Configuration: 1x6TB + 2x3TB drives with AnyRaid-Mirror
+#
+# Total tiles: 96 + 48 + 48 = 192 tiles
+# With 2-way mirror: 96 mirrored pairs
+# Usable capacity: ~6TB (with full redundancy)
+#
+# Traditional ZFS mirror with same drives: ~3TB usable
+# AnyRaid gain: +100% capacity!
+```
+
+### The Indirection Layer
+
+The magic happens through a new **indirection map**—an on-disk structure that tracks which logical tiles map to which physical locations. This extra layer enables:
+
+1. **Flexible placement** — Tiles can go anywhere there's space
+2. **Automatic rebalancing** — New drives get utilized immediately
+3. **Preserved redundancy** — ZFS always knows where your data's copies live
+
+> **Important:** The indirection layer does add some computational overhead. For most homelab workloads (media streaming, file serving, backups), this overhead is negligible. Heavy write-intensive workloads may see minor performance differences compared to traditional layouts.
+
+## Capacity Gains: The Numbers Game
+
+Let's look at a realistic homelab scenario.
+
+### Scenario: The Budget Builder
+
+You're building a NAS with drives collected over time:
+
+| Drive | Capacity | Source |
+|-------|----------|--------|
+| 1 | 4TB | Old PC backup |
+| 2 | 6TB | Black Friday deal |
+| 3 | 6TB | Same deal |
+| 4 | 8TB | Birthday splurge |
+
+**Total raw capacity:** 24TB
+
+Here's what you get:
+
+| Layout | Usable Space | Efficiency |
+|--------|-------------|------------|
+| Traditional Mirror (2x2) | 10TB | 42% |
+| Traditional RAID-Z1 | 12TB (capped at 4TB/drive) | 50% |
+| **AnyRaid-Mirror** | **12TB** | **50%** |
+| **AnyRaid-Z1** | **~16TB** | **67%** |
+
+With AnyRaid-Z1, you gain **4TB of usable space** compared to traditional RAID-Z1—and you can add more drives incrementally without replacing everything.
+
+### Real Financial Impact
+
+Think about what that means in dollars:
+
+```bash
+# Traditional ZFS upgrade path
+# Start: 4x mixed drives (4TB, 6TB, 6TB, 8TB)
+# Want: More capacity
+# Option: Replace ALL drives with 8TB units
+# Cost: ~$320-480 (4x 8TB drives)
+
+# AnyRaid upgrade path
+# Start: Same mixed drives
+# Want: More capacity
+# Option: Add another drive whenever you want
+# Cost: ~$80-120 per incremental upgrade
+```
+
+The flexibility to add storage **when it makes sense for your budget**—not when the VDEV replacement math works out—is a game-changer for home server builders.
+
+## Timeline: When Can You Use This?
+
+As of February 2026, AnyRaid is **still in active development**. There's no confirmed release date, but the pace has surprised observers.
+
+### Development Phases
+
+> **Phase 1 (Current Focus):**
+> - AnyRaid-Mirror support
+> - Indirection Map implementation
+> - VDEV Expansion capability
+> - Layout Optimization algorithms
+>
+> **Phase 2 (Future):**
+> - AnyRaid-Z1, Z2, Z3 support
+> - Extended parity layouts
+
+### Who's Building This?
+
+**The Team:**
+- **HexOS** — Modern home-server OS built on TrueNAS, sponsor of the project
+- **Klara Systems** — ZFS internals experts, lead development
+- **Allan Jude** — Project lead
+- **Paul Dagnelie** — Principal ZFS developer, AnyRaid architect
+
+Jon Panozzo, CEO of HexOS, put it plainly:
+
+> "People don't buy perfectly matched drive sets. They upgrade over time, and ZFS historically punished them for that."
+
+The development speed has been notable. In an industry where major ZFS features often take 3-5 years from proposal to release, AnyRaid has progressed rapidly since its May 2025 announcement.
+
+```bash
+# Historical context for major ZFS features
+# DRAID: Announced 2015, merged 2020 (~5 years)
+# RAID-Z Expansion: Proposed 2017, merged 2022 (~5 years)
+# AnyRaid: Announced May 2025, active development (~1 year)
+```
+
+## AnyRaid vs Unraid: The Homelab Showdown
+
+Let's address the elephant in the room. **Unraid** has owned the mixed-drive homelab market for years. How does AnyRaid change things?
+
+### What Unraid Does Well Today
+
+- Native mixed-drive support (always had it)
+- Simple drive-by-drive expansion
+- Individual drive spin-down for power savings
+- Very beginner-friendly UI
+
+### What AnyRaid Brings
+
+| Feature | Unraid | ZFS + AnyRaid |
+|---------|--------|---------------|
+| Mixed drives | ✅ | ✅ |
+| Data integrity (checksums) | ❌ | ✅ |
+| Native snapshots | ❌ | ✅ |
+| Replication | Limited | ✅ |
+| Compression | ❌ | ✅ (LZ4/ZSTD) |
+| Deduplication | ❌ | ✅ |
+| Enterprise support | ❌ | ✅ |
+
+> **The real win:** AnyRaid gives you Unraid-style flexibility **with** ZFS's legendary data integrity. Those checksums that ZFS computes for every block? They've saved countless home servers from silent data corruption. Now you can have that safety net *and* mixed-drive support.
+
+### Should You Switch?
+
+**Consider AnyRaid if you:**
+- Want ZFS's data integrity guarantees
+- Value snapshots for backup/rollback
+- Have existing ZFS experience
+- Plan to use TrueNAS or HexOS
+
+**Stick with Unraid if you:**
+- Need individual drive spin-down (power is a concern)
+- Prefer GUI-over-command-line management
+- Want something that exists *today*
+- Don't need ZFS-specific features
+
+The beauty of AnyRaid is that it expands your options—ZFS no longer **requires** matched drives to make sense for homelab budgets.
+
+## Practical Example: Building with AnyRaid
+
+Once AnyRaid lands, here's how pool management might look:
+
+```bash
+# Create an AnyRaid-Mirror pool with mixed drives
+$ zpool create mediapool anyraid-mirror sda sdb sdc sdd
+
+# Check your capacity utilization
+$ zpool list -v mediapool
+NAME              SIZE   ALLOC   FREE   DEDUP  HEALTH
+mediapool        12.0T  2.4T    9.6T   1.00x  ONLINE
+  anyraid-mirror 12.0T  2.4T    9.6T         ONLINE
+    sda           4.0T   -       -            ONLINE
+    sdb           6.0T   -       -            ONLINE
+    sdc           6.0T   -       -            ONLINE
+    sdd           8.0T   -       -            ONLINE
+
+# Add a new drive later (instant capacity gain)
+$ zpool add mediapool anyraid-mirror sde
+$ zpool list mediapool
+NAME        SIZE   ALLOC   FREE
+mediapool  16.0T  2.4T    13.6T
+```
+
+The key difference from traditional ZFS: **you added a drive and immediately got more usable space**. No replacement cycle. No wasted capacity period.
+
+## What About Reliability?
+
+This is the question every ZFS user asks. Does the indirection layer compromise ZFS's core promise?
+
+**Short answer: No.**
+
+Paul Dagnelie, the lead architect, addressed this directly:
+
+> "This allows us to preserve the same reliability guarantees that mirrors and RAID-Z provide. If you lose a device, you can still reconstruct all of your data."
+
+The indirection map is itself mirrored and checksummed. ZFS still maintains multiple copies of your data across different physical drives. Standard resilver processes work. If a drive fails, ZFS knows exactly which tiles need to be rebuilt and where to find their redundant copies.
+
+> **Caveat:** AnyRaid-Mirror provides 2-way redundancy (survive 1 drive failure per mirror group). For critical data, consider AnyRaid-Z2 (survive 2 drive failures) when it becomes available. Always follow the backup rule: important data should exist in multiple places, not just multiple drives in one array.
+
+## The Bottom Line for Homelabbers
+
+ZFS AnyRaid represents a fundamental shift in who ZFS is *for*.
+
+For decades, ZFS has been the enterprise filesystem that power users brought home. It offered unmatched data integrity, but required enterprise-style planning: matched drives, full-VDEV upgrades, careful expansion strategies.
+
+AnyRaid changes that equation:
+
+**Before AnyRaid:**
+- ZFS = Enterprise features + enterprise discipline
+- Mixed drives = wasted money and space
+- Budget builds = choose Unraid or suffer inefficiency
+
+**After AnyRaid:**
+- ZFS = Enterprise features + consumer flexibility
+- Mixed drives = fully utilized capacity
+- Budget builds = ZFS is finally viable
+
+The feature isn't ready yet, but for homelabbers watching from the sidelines, **ZFS AnyRaid is worth the wait**. It's the missing piece that makes ZFS accessible to anyone who builds their storage incrementally—which, let's be honest, is most of us.
+
+---
+
+*Have thoughts on AnyRaid or questions about ZFS storage planning? Drop a comment below or reach out on [Mastodon](https://mastodon.social/@antlatt).* 
