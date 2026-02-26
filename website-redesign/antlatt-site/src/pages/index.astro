@@ -40,6 +40,20 @@ const allArticles = [
   }))
 ];
 
+// Get featured articles (explicitly featured OR high-priority slugs)
+const FEATURED_SLUGS = [
+  'intel-n100-proxmox-homelab',
+  'true-recall-memory-system',
+  'self-hosting-ai-models-2026',
+  'openclaw-ai-revolution-2026'
+];
+
+const featuredArticles = allArticles
+  .filter(article => 
+    article.data.featured || FEATURED_SLUGS.includes(article.slug)
+  )
+  .slice(0, 3);
+
 // Sort by date (newest first) and get the 6 most recent
 const recentArticles = allArticles
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
@@ -63,6 +77,38 @@ const recentArticles = allArticles
     title="What's This Site About?"
     description="A quick tour through my builds, self-hosted AI setup, and the projects that keep me up too late."
   />
+
+  <!-- Featured Guides Section -->
+  {featuredArticles.length > 0 && (
+    <section id="featured-guides" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 bg-surface/50">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h2 class="text-2xl font-bold">Start Here</h2>
+          <p class="text-text-muted text-sm mt-1">Featured guides to get you started</p>
+        </div>
+        <a href="/articles" class="btn btn-secondary text-sm">
+          View All
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {featuredArticles.map((article) => (
+          <Card
+            title={article.data.title}
+            description={article.data.description}
+            href={article.href}
+            image={article.data.image}
+            tags={[article.type, ...article.data.tags?.slice(0, 1) || []]}
+            date={article.data.date.toISOString()}
+            readingTime={article.readingTime}
+          />
+        ))}
+      </div>
+    </section>
+  )}
 
   <!-- Most Recent Section -->
   <section id="most-recent" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">

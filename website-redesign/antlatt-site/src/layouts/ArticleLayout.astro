@@ -27,9 +27,10 @@ interface Props {
   nextBuild?: { title: string; slug: string } | null;
   series?: { name: string; order: number } | null;
   category?: string;
+  collection?: 'builds' | 'blog';
 }
 
-const { title, description, date, tags = [], image, slug, headings = [], readingTime, prevBuild, nextBuild, series, category } = Astro.props;
+const { title, description, date, tags = [], image, slug, headings = [], readingTime, prevBuild, nextBuild, series, category, collection = 'builds' } = Astro.props;
 
 // Build breadcrumb items
 const breadcrumbItems = [
@@ -125,7 +126,8 @@ const articleId = slug || title.toLowerCase().replace(/\s+/g, '-');
           <SeriesNav 
             seriesName={series.name} 
             currentSlug={slug} 
-            currentOrder={series.order} 
+            currentOrder={series.order}
+            collection={collection}
           />
         )}
 

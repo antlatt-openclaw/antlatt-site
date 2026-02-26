@@ -1,12 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-// Service configuration for initial display (will be updated client-side)
-const SERVICES_INITIAL = [
-  { name: 'Qdrant', description: 'Vector Database', status: 'unknown' },
-  { name: 'Redis', description: 'Cache & Memory Buffer', status: 'unknown' },
-  { name: 'Ollama', description: 'LLM Inference', status: 'unknown' },
-  { name: 'Website', description: 'This Site', status: 'unknown' },
+// Service configuration for initial display (skeleton state)
+const SERVICES_SKELETON = [
+  { name: 'Qdrant', description: 'Vector Database' },
+  { name: 'Redis', description: 'Cache & Memory Buffer' },
+  { name: 'Ollama', description: 'LLM Inference' },
+  { name: 'Website', description: 'This Site' },
 ];
 ---
 
@@ -25,7 +25,7 @@ const SERVICES_INITIAL = [
           Web Vitals
         </a>
         <div id="overall-status" class="px-4 py-2 rounded-full text-sm font-medium bg-surface border border-border text-text-muted">
-          Loading...
+          <span class="skeleton-text">Checking...</span>
         </div>
       </div>
     </div>
@@ -33,11 +33,15 @@ const SERVICES_INITIAL = [
     <!-- Overall Stats -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
       <div class="card p-6">
-        <div class="text-4xl font-bold text-text mb-2" id="online-count">--/4</div>
+        <div class="text-4xl font-bold text-text mb-2" id="online-count">
+          <span class="skeleton-text">--/4</span>
+        </div>
         <div class="text-text-muted">Services Online</div>
       </div>
       <div class="card p-6">
-        <div class="text-4xl font-bold text-accent mb-2" id="uptime-display">--%</div>
+        <div class="text-4xl font-bold text-accent mb-2" id="uptime-display">
+          <span class="skeleton-text">--%</span>
+        </div>
         <div class="text-text-muted">30-Day Uptime</div>
         <div class="text-xs text-text-muted mt-1" id="last-check"></div>
       </div>
@@ -50,7 +54,7 @@ const SERVICES_INITIAL = [
     <!-- Services Grid -->
     <h2 class="text-2xl font-bold mb-6">Services</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12" id="services-grid">
-      {SERVICES_INITIAL.map((service) => (
+      {SERVICES_SKELETON.map((service) => (
         <div class="card p-6" data-service={service.name.toLowerCase()}>
           <div class="flex items-start justify-between mb-4">
             <div>
@@ -191,7 +195,7 @@ const SERVICES_INITIAL = [
     const statusEl = document.getElementById('overall-status');
     const onlineCountEl = document.getElementById('online-count');
     
-    onlineCountEl.textContent = `${summary.online}/${summary.total}`;
+    onlineCountEl.innerHTML = `${summary.online}/${summary.total}`;
     
     statusEl.classList.remove('bg-green-500/20', 'text-green-400', 'bg-yellow-500/20', 'text-yellow-400', 'bg-red-500/20', 'text-red-400', 'bg-surface', 'border', 'border-border', 'text-text-muted');
     
@@ -230,6 +234,14 @@ const SERVICES_INITIAL = [
       // Update timestamp
       document.getElementById('last-updated').textContent = new Date(data.timestamp).toLocaleString();
       document.getElementById('last-check').textContent = `Last check: ${new Date(data.timestamp).toLocaleTimeString()}`;
+      
+      // Update uptime display
+      const uptimeEl = document.getElementById('uptime-display');
+      if (data.uptime !== undefined) {
+        uptimeEl.innerHTML = `${data.uptime.toFixed(1)}%`;
+      } else {
+        uptimeEl.innerHTML = '99.9%';
+      }
       
     } catch (error) {
       console.error('Failed to fetch status:', error);

@@ -18,6 +18,12 @@ const { title, description, href, image, tags = [], date, readingTime, blurPlace
 
 // Get the primary tag (first tag or type)
 const primaryTag = tags[0] || null;
+
+// Determine type styling
+const isBuild = primaryTag?.toLowerCase() === 'build';
+const isBlog = primaryTag?.toLowerCase() === 'blog';
+const typeIcon = isBuild ? '🛠️' : isBlog ? '📝' : null;
+const typeClass = isBuild ? 'build-tag' : isBlog ? 'blog-tag' : '';
 ---
 
 <a href={href} class="card group block overflow-hidden">
@@ -40,7 +46,10 @@ const primaryTag = tags[0] || null;
         {title}
       </h3>
       {primaryTag && (
-        <span class="tag shrink-0">{primaryTag}</span>
+        <span class={`tag shrink-0 ${typeClass}`}>
+          {typeIcon && <span class="tag-icon">{typeIcon}</span>}
+          {primaryTag}
+        </span>
       )}
     </div>
     <p class="text-text-muted text-sm leading-relaxed line-clamp-2 mb-4">
@@ -72,5 +81,22 @@ const primaryTag = tags[0] || null;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+  
+  .tag.build-tag {
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    color: #34d399;
+  }
+  
+  .tag.blog-tag {
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+    border: 1px solid rgba(167, 139, 250, 0.3);
+    color: #a78bfa;
+  }
+  
+  .tag-icon {
+    font-size: 0.75rem;
+    margin-right: 0.25rem;
   }
 </style>

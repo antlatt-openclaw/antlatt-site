@@ -43,14 +43,14 @@ const seriesSlug = seriesName.toLowerCase().replace(/\s+/g, '-');
   </div>
   
   <div class="series-parts">
-    {seriesBuilds.map((build, idx) => (
+    {seriesItems.map((item, idx) => (
       <a 
-        href={`/builds/${build.slug}`} 
-        class={`series-part ${build.slug === currentSlug ? 'active' : ''}`}
-        aria-current={build.slug === currentSlug ? 'page' : undefined}
+        href={`${basePath}/${item.slug}`} 
+        class={`series-part ${item.slug === currentSlug ? 'active' : ''}`}
+        aria-current={item.slug === currentSlug ? 'page' : undefined}
       >
         <span class="part-number">{idx + 1}</span>
-        <span class="part-title">{build.data.title}</span>
+        <span class="part-title">{item.data.title}</span>
       </a>
     ))}
   </div>
@@ -58,7 +58,7 @@ const seriesSlug = seriesName.toLowerCase().replace(/\s+/g, '-');
   {(prevInSeries || nextInSeries) && (
     <div class="series-nav-buttons">
       {prevInSeries ? (
-        <a href={`/builds/${prevInSeries.slug}`} class="series-nav-btn prev">
+        <a href={`${basePath}/${prevInSeries.slug}`} class="series-nav-btn prev">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
@@ -70,7 +70,7 @@ const seriesSlug = seriesName.toLowerCase().replace(/\s+/g, '-');
       ) : <div class="series-nav-btn empty"></div>}
       
       {nextInSeries ? (
-        <a href={`/builds/${nextInSeries.slug}`} class="series-nav-btn next">
+        <a href={`${basePath}/${nextInSeries.slug}`} class="series-nav-btn next">
           <span>
             <span class="btn-label">Next in Series</span>
             <span class="btn-title">{nextInSeries.data.title}</span>

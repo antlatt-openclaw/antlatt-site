@@ -45,7 +45,15 @@ const allTags = [...new Set(sortedArticles.flatMap(a => a.data.tags || []))].sor
 
 <BaseLayout title="Articles | ANTLATT.COM" description="All builds, projects, tutorials, and articles in one place.">
   <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    <h1 class="text-4xl font-bold mb-4">Articles</h1>
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-4xl font-bold">Articles</h1>
+      <a href="/rss.xml" class="flex items-center gap-2 text-text-muted hover:text-accent transition-colors text-sm">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1Z"/>
+        </svg>
+        Subscribe via RSS
+      </a>
+    </div>
     <p class="text-text-muted text-lg mb-8">
       All builds, projects, tutorials, and thoughts in one place.
     </p>
