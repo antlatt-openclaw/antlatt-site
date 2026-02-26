@@ -25,10 +25,6 @@ const {
   repo = 'antlatt-openclaw/giscus', 
   branch = 'main' 
 } = Astro.props;
-
-// Giscus configuration for antlatt-openclaw/giscus
-const GISCUS_REPO_ID = 'R_kgDORZsYOA';
-const GISCUS_CATEGORY_ID = 'DIC_kwDORZsYOM4C3RiH';
 ---
 
 <div class="comments-section" id="comments-section">
@@ -43,15 +39,15 @@ const GISCUS_CATEGORY_ID = 'DIC_kwDORZsYOM4C3RiH';
 </div>
 
 <script>
-  // Inject the Giscus script
+  // Inject the Giscus script with hardcoded values
   const repo = 'antlatt-openclaw/giscus';
   
   const script = document.createElement('script');
   script.src = 'https://giscus.app/client.js';
   script.setAttribute('data-repo', repo);
-  script.setAttribute('data-repo-id', GISCUS_REPO_ID);
+  script.setAttribute('data-repo-id', 'R_kgDORZsYOA');
   script.setAttribute('data-category', 'Announcements');
-  script.setAttribute('data-category-id', GISCUS_CATEGORY_ID);
+  script.setAttribute('data-category-id', 'DIC_kwDORZsYOM4C3RiH');
   script.setAttribute('data-mapping', 'pathname');
   script.setAttribute('data-strict', '0');
   script.setAttribute('data-reactions-enabled', '1');
