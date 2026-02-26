@@ -1,4 +1,19 @@
 ---
+/**
+ * Giscus Comments Component
+ * 
+ * SETUP INSTRUCTIONS:
+ * 1. Go to https://giscus.app/en and follow the configuration steps
+ * 2. Enter your repo: antlatt-openclaw/antlatt-site
+ * 3. Select "Discussions" as the conversation location
+ * 4. Choose a category (e.g., "General" or "Announcements")
+ * 5. Copy the generated data-repo-id and data-category-id values
+ * 6. Update the placeholder values below
+ * 
+ * Required: The repo must have Discussions enabled and the giscus app installed
+ * Enable Discussions: https://github.com/antlatt-openclaw/antlatt-site/settings
+ * Install giscus: https://github.com/apps/giscus
+ */
 interface Props {
   // GitHub repo in format: owner/repo
   repo: string;
@@ -10,6 +25,11 @@ const {
   repo = 'antlatt-openclaw/antlatt-site', 
   branch = 'main' 
 } = Astro.props;
+
+// TODO: Replace with actual values from giscus.app
+// These are placeholder IDs and won't work until updated
+const GISCUS_REPO_ID = 'R_kgDONxRbRQ'; // Replace with actual repo ID from giscus.app
+const GISCUS_CATEGORY_ID = 'DIC_kwDONxRbRc4CmB8A'; // Replace with actual category ID from giscus.app
 ---
 
 <div class="comments-section" id="comments-section">

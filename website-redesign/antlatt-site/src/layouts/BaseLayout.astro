@@ -29,9 +29,8 @@ const pageUrl = Astro.url.href.replace(/([^:]\/)\/+/g, '$1');
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="canonical" href={pageUrl} />
+    <!-- Fonts are self-hosted for performance. See src/styles/global.css -->
     
     <!-- RSS Feed -->
     <link rel="alternate" type="application/rss+xml" title="ANTLATT.COM RSS Feed" href="/rss.xml" />
@@ -72,7 +71,7 @@ const pageUrl = Astro.url.href.replace(/([^:]\/)\/+/g, '$1');
           </a>
           <div class="hidden sm:flex items-center gap-6">
             <a href="/" class="text-text-muted hover:text-text transition-colors">Home</a>
-            <a href="/builds" class="text-text-muted hover:text-text transition-colors">Builds</a>
+            <a href="/articles" class="text-text-muted hover:text-text transition-colors">Articles</a>
             <a href="/lab" class="text-text-muted hover:text-text transition-colors">Lab</a>
             <a href="/deepfakes" class="text-text-muted hover:text-text transition-colors">DeepFakes</a>
             <a href="/about" class="text-text-muted hover:text-text transition-colors">About</a>
@@ -107,7 +106,7 @@ const pageUrl = Astro.url.href.replace(/([^:]\/)\/+/g, '$1');
       <div id="mobile-menu" class="hidden sm:hidden border-t border-border">
         <div class="px-4 py-3 space-y-2">
           <a href="/" class="block text-text-muted hover:text-text transition-colors py-2">Home</a>
-          <a href="/builds" class="block text-text-muted hover:text-text transition-colors py-2">Builds</a>
+          <a href="/articles" class="block text-text-muted hover:text-text transition-colors py-2">Articles</a>
           <a href="/lab" class="block text-text-muted hover:text-text transition-colors py-2">Lab</a>
           <a href="/deepfakes" class="block text-text-muted hover:text-text transition-colors py-2">DeepFakes</a>
           <a href="/about" class="block text-text-muted hover:text-text transition-colors py-2">About</a>
