@@ -3,15 +3,15 @@
  * Giscus Comments Component
  * 
  * SETUP INSTRUCTIONS:
- * 1. Go to https://giscus.app/en and follow the configuration steps
- * 2. Enter your repo: antlatt-openclaw/antlatt-site
- * 3. Select "Discussions" as the conversation location
- * 4. Choose a category (e.g., "General" or "Announcements")
- * 5. Copy the generated data-repo-id and data-category-id values
+ * 1. Go to https://giscus.app and configure your repository
+ * 2. For repo: antlatt-openclaw/giscus (or antlatt-openclaw/antlatt-site)
+ * 3. Enable Discussions on your repository
+ * 4. Install the Giscus app on your repository
+ * 5. Get your repo-id and category-id from giscus.app configuration
  * 6. Update the placeholder values below
  * 
  * Required: The repo must have Discussions enabled and the giscus app installed
- * Enable Discussions: https://github.com/antlatt-openclaw/antlatt-site/settings
+ * Enable Discussions: https://github.com/antlatt-openclaw/giscus/settings
  * Install giscus: https://github.com/apps/giscus
  */
 interface Props {
@@ -22,14 +22,13 @@ interface Props {
 }
 
 const { 
-  repo = 'antlatt-openclaw/antlatt-site', 
+  repo = 'antlatt-openclaw/giscus', 
   branch = 'main' 
 } = Astro.props;
 
-// TODO: Replace with actual values from giscus.app
-// These are placeholder IDs and won't work until updated
-const GISCUS_REPO_ID = 'R_kgDONxRbRQ'; // Replace with actual repo ID from giscus.app
-const GISCUS_CATEGORY_ID = 'DIC_kwDONxRbRc4CmB8A'; // Replace with actual category ID from giscus.app
+// Giscus configuration for antlatt-openclaw/giscus
+const GISCUS_REPO_ID = 'R_kgDORZsYOA';
+const GISCUS_CATEGORY_ID = 'DIC_kwDORZsYOM4C3RiH';
 ---
 
 <div class="comments-section" id="comments-section">
@@ -38,133 +37,61 @@ const GISCUS_CATEGORY_ID = 'DIC_kwDONxRbRc4CmB8A'; // Replace with actual catego
     <span class="comments-powered">Powered by GitHub Discussions</span>
   </div>
   
-  <div class="comments-loader" id="comments-loader">
-    <button class="load-comments-btn" id="load-comments-btn">
-      <svg class="btn-icon" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
-      </svg>
-      <span>Load Comments</span>
-    </button>
-    <p class="comments-hint">Comments are loaded on demand to improve page performance.</p>
-  </div>
-  
-  <div class="giscus-container" id="giscus-container" data-repo={repo} data-branch={branch}>
+  <div class="giscus" id="giscus">
     <!-- Giscus iframe will be inserted here -->
   </div>
 </div>
 
 <script>
-  // Lazy load comments via Intersection Observer
-  const commentsSection = document.getElementById('comments-section');
-  const loadBtn = document.getElementById('load-comments-btn');
-  const loader = document.getElementById('comments-loader');
-  const container = document.getElementById('giscus-container');
+  // Inject the Giscus script
+  const repo = 'antlatt-openclaw/giscus';
   
-  let loaded = false;
+  const script = document.createElement('script');
+  script.src = 'https://giscus.app/client.js';
+  script.setAttribute('data-repo', repo);
+  script.setAttribute('data-repo-id', GISCUS_REPO_ID);
+  script.setAttribute('data-category', 'Announcements');
+  script.setAttribute('data-category-id', GISCUS_CATEGORY_ID);
+  script.setAttribute('data-mapping', 'pathname');
+  script.setAttribute('data-strict', '0');
+  script.setAttribute('data-reactions-enabled', '1');
+  script.setAttribute('data-emit-metadata', '0');
+  script.setAttribute('data-input-position', 'top');
+  script.setAttribute('data-theme', 'preferred_color_scheme');
+  script.setAttribute('data-lang', 'en');
+  script.setAttribute('data-loading', 'lazy');
+  script.setAttribute('crossorigin', 'anonymous');
+  script.async = true;
   
-  // Check if user prefers reduced motion
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Insert the script into the giscus container
+  const giscusContainer = document.getElementById('giscus');
+  if (giscusContainer) {
+    giscusContainer.appendChild(script);
+  }
   
-  function loadGiscus() {
-    if (loaded) return;
-    loaded = true;
+  // Listen for theme changes from Giscus
+  window.addEventListener('message', (event) => {
+    if (event.origin !== 'https://giscus.app') return;
+    if (!(event instanceof MessageEvent)) return;
     
-    const repo = container?.dataset.repo || 'antlatt-openclaw/antlatt-site';
-    const branch = container?.dataset.branch || 'main';
+    const iframe = giscusContainer?.querySelector('iframe.giscus-frame');
+    if (!iframe) return;
     
-    // Get the current page path as a mapping for the discussion
-    const pagePath = window.location.pathname;
-    const pageTitle = document.title.replace(' | ANTLATT.COM', '');
-    
-    // Create the Giscus iframe
-    const iframe = document.createElement('iframe');
-    iframe.src = `https://giscus.app/widget?origin=${encodeURIComponent(window.location.origin)}`;
-    iframe.setAttribute('data-giscus', '');
-    
-    // Configure Giscus via iframe attributes
-    const params = new URLSearchParams({
-      'data-repo': repo,
-      'data-repo-id': '',  // Will need to be fetched or hardcoded
-      'data-category': 'Announcements',  // Using Discussions category
-      'data-category-id': '',  // Will need to be fetched or hardcoded
-      'data-mapping': 'pathname',
-      'data-strict': '0',
-      'data-reactions-enabled': '1',
-      'data-emit-metadata': '0',
-      'data-input-position': 'bottom',
-      'data-theme': 'https://antlatt.com/giscus-theme.css',
-      'data-lang': 'en',
-      'data-loading': 'lazy',
-    });
-    
-    // Create the actual Giscus script embed
-    const script = document.createElement('script');
-    script.src = 'https://giscus.app/client.js';
-    script.setAttribute('data-repo', repo);
-    script.setAttribute('data-repo-id', 'R_kgDONxRbRQ'); // Placeholder - will need actual repo ID
-    script.setAttribute('data-category', 'General');
-    script.setAttribute('data-category-id', 'DIC_kwDONxRbRc4CmB8A'); // Placeholder - will need actual category ID
-    script.setAttribute('data-mapping', 'pathname');
-    script.setAttribute('data-strict', '0');
-    script.setAttribute('data-reactions-enabled', '1');
-    script.setAttribute('data-emit-metadata', '0');
-    script.setAttribute('data-input-position', 'bottom');
-    script.setAttribute('data-theme', 'dark');
-    script.setAttribute('data-lang', 'en');
-    script.setAttribute('crossorigin', 'anonymous');
-    script.async = true;
-    
-    // Hide loader and show container
-    if (loader) loader.style.display = 'none';
-    if (container) {
-      container.style.display = 'block';
-      container.appendChild(script);
+    // Forward theme changes if needed
+    if (event.data?.giscus?.theme) {
+      iframe.contentWindow?.postMessage(
+        { giscus: { setConfig: { theme: event.data.giscus.theme } } },
+        'https://giscus.app'
+      );
     }
-    
-    // Listen for Giscus messages for theme switching
-    window.addEventListener('message', (event) => {
-      if (event.origin !== 'https://giscus.app') return;
-      if (!(event instanceof MessageEvent)) return;
-      
-      const iframe = container?.querySelector('iframe.giscus-frame');
-      if (!iframe) return;
-      
-      // Forward theme changes if needed
-      if (event.data?.giscus?.theme) {
-        iframe.contentWindow?.postMessage(
-          { giscus: { setConfig: { theme: event.data.giscus.theme } } },
-          'https://giscus.app'
-        );
-      }
-    });
-  }
-  
-  // Load on button click
-  loadBtn?.addEventListener('click', loadGiscus);
-  
-  // Use Intersection Observer to preload when user scrolls near
-  if (commentsSection) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        // Preload when comments section is 300px from viewport
-        if (entry.isIntersecting && !loaded) {
-          // Optional: Auto-load when scrolled into view
-          // For now, we keep manual loading via button
-        }
-      });
-    }, {
-      rootMargin: '300px',
-    });
-    
-    observer.observe(commentsSection);
-  }
+  });
 </script>
 
 <style>
   .comments-section {
     margin-top: 3rem;
     padding-top: 2rem;
-    border-top: 1px solid var(--color-border);
+    border-top: 1px solid var(--border);
   }
   
   .comments-header {
@@ -177,75 +104,17 @@ const GISCUS_CATEGORY_ID = 'DIC_kwDONxRbRc4CmB8A'; // Replace with actual catego
   .comments-header h3 {
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--color-text);
+    color: var(--text);
     margin: 0;
   }
   
   .comments-powered {
     font-size: 0.75rem;
-    color: var(--color-text-muted);
+    color: var(--text-muted);
   }
   
-  .comments-loader {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2rem;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 0.75rem;
-    text-align: center;
-  }
-  
-  .load-comments-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: var(--color-accent);
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .load-comments-btn:hover {
-    background: var(--color-accent-hover);
-    transform: translateY(-1px);
-  }
-  
-  .load-comments-btn:active {
-    transform: translateY(0);
-  }
-  
-  .btn-icon {
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-  
-  .comments-hint {
-    margin-top: 1rem;
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-  }
-  
-  .giscus-container {
-    display: none;
+  #giscus {
     min-height: 200px;
-  }
-  
-  .giscus-container iframe {
-    width: 100%;
-    border: none;
-    border-radius: 0.5rem;
-  }
-  
-  /* Dark theme adjustments for Giscus */
-  .giscus-container iframe {
-    background: transparent !important;
   }
   
   @media (max-width: 640px) {
