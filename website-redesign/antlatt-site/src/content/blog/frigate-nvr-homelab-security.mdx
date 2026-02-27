@@ -1,0 +1,762 @@
+---
+title: "Frigate NVR: Build a Privacy-First Security Camera System for Your Homelab"
+description: "Set up Frigate NVR with AI-powered object detection, Home Assistant integration, and zero false alerts. A complete guide to self-hosted security cameras."
+date: 2026-02-27
+author: "Anthony Lattanzio"
+tags: ["homelab", "frigate", "security", "nvr", "self-hosting", "home-assistant"]
+image: "/images/blog/frigate-nvr-homelab-security/hero.webp"
+---
+
+Your security cameras shouldn't phone home to a stranger's server. Every Ring doorbell, every Nest camera, every Arlo hub sends your video to the cloud—where employees can peek, law enforcement can request access, and data breaches can expose your most private moments.
+
+Frigate NVR flips that model entirely. All processing happens on your hardware. Your footage stays on your network. Your privacy remains in your control.
+
+In 2026, Frigate has become the go-to choice for homelabbers who want enterprise-grade security features without the privacy compromises of cloud cameras. Let's build one.
+
+## What Makes Frigate Different
+
+Traditional NVRs use simple motion detection. A shadow moves across your driveway? Alert. A tree sways in the wind? Alert. A bug flies past the lens? Alert. Your phone becomes a noise machine.
+
+Frigate uses real-time AI object detection. It doesn't just see "motion"—it identifies people, cars, dogs, cats, and dozens of other objects. The result is dramatically fewer false alerts and genuinely useful notifications.
+
+### Key Features in 2026
+
+The project has matured rapidly. Recent versions have added features that were previously locked behind subscriptions:
+
+- **Face Recognition** — Identify family members and frequent visitors
+- **License Plate Recognition** — Track vehicles entering your property
+- **Native WebPush Notifications** — No third-party services required
+- **Explore Pane** — Filter and search through detected objects
+- **AI-Generated Summaries** — Quick overviews of daily activity
+
+:::tip[What About Frigate+?]
+Frigate offers an optional paid subscription called Frigate+ that provides custom-trained AI models tuned specifically for security camera footage. It's entirely optional—the free version includes all core features including face recognition and license plate detection.
+:::
+
+## Hardware Requirements: The Honest Truth
+
+Frigate needs real compute resources. This isn't a lightweight container you can tuck onto an already-buried Raspberry Pi. Let's break down what you actually need.
+
+### Minimum vs Recommended
+
+| Component | Minimum | Recommended | High-End |
+|-----------|---------|-------------|----------|
+| RAM | 4GB | 8-16GB | 16GB+ |
+| CPU | Modern multi-core | Intel i5/i7 with Quick Sync | Multi-core server CPU |
+| Storage | SSD preferred | SSD + HDD archive | Enterprise SSD/NVR HDD |
+| Network | Gigabit | Gigabit | 10GbE for large setups |
+
+:::caution[Mind Your Memory]
+4GB works for basic setups with a dedicated AI accelerator and no enrichment features. 8GB is required for face recognition and license plate detection. 16GB is recommended for 8+ cameras or heavy use of enrichment features.
+:::
+
+### AI Acceleration: Your Most Important Decision
+
+This is where Frigate lives or dies. You have several options, and the landscape has shifted considerably in 2026.
+
+#### Google Coral Edge TPU
+
+The original Frigate accelerator. Cheap (~$60), extremely power efficient (~2W), and still widely used.
+
+**Status:** Officially "no longer recommended for new installations" per Frigate documentation.
+
+**Why the demotion:** Newer options offer better performance-per-dollar, and supply issues have plagued Coral availability. It still works well for existing setups, but consider alternatives for new builds.
+
+**Best for:** Existing installations, ultra-low-power systems, Raspberry Pi deployments
+
+#### NVIDIA GPUs
+
+The current performance king. An RTX 4060 can achieve ~6ms detection latency with TensorRT optimization.
+
+**Requirements:** CUDA 12.x support, driver 545+, Compute Capability 5.0+ (Maxwell architecture or newer—basically any GPU from 2014 onwards).
+
+**Bonus:** NVIDIA GPUs can also handle video decoding, offloading work from your CPU.
+
+**Best for:** Large installations (12+ cameras), users wanting maximum performance, setups already equipped with NVIDIA hardware
+
+#### Intel GPUs (OpenVINO)
+
+Often overlooked, but Intel's integrated GPUs are excellent for AI acceleration. If you're already building on Intel, this is essentially free acceleration.
+
+**Options:** 6th Gen Intel Core or newer (Skylake and later), Intel Arc discrete GPUs
+
+**Best for:** Budget builds, Intel-based systems, low-power setups
+
+#### Hailo-8 / Hailo-8L
+
+The new kid on the block. PCIe-based AI accelerators that automatically download and use appropriate YOLOv6 models.
+
+**Best for:** New installations wanting dedicated AI hardware without GPU power draw
+
+### What I Recommend
+
+:::tip[My Hardware Picks]
+**Budget / Low Power:** Intel N100 mini PC with integrated GPU OpenVINO detection. Total cost: ~$200, power: 10-15W idle.
+
+**Mid-Range:** Used Dell Optiplex with i5-8500 (6th gen Intel, excellent QuickSync + OpenVINO). Total cost: ~$250, power: 25-40W.
+
+**Performance:** Mini PC or custom build with NVIDIA GPU. Total cost: $500-800, power: 60-100W.
+:::
+
+### Camera Requirements
+
+Your cameras need to speak RTSP—that's the only hard requirement. Beyond that:
+
+**Essential:**
+- RTSP streaming support
+- H.264 video codec (H.265 has limited support)
+- AAC audio if you want sound
+
+**Highly Recommended:**
+- **Substream support** — Use a low-resolution stream for detection and high-resolution for recording. This dramatically reduces CPU load.
+- **Local recording to SD card** — Redundant backup if your NVR goes offline
+
+**Resolution Strategy:**
+- Detection stream: 720p-1080p (AI detection doesn't need 4K)
+- Recording stream: Whatever your camera supports (4K is fine)
+
+The substream approach is critical. Feeding 4K video to AI detection is wasteful—720p is plenty for detecting people and cars, and it reduces CPU/GPU load by 75% or more.
+
+## Setting Up Frigate
+
+Let's walk through a complete installation using Docker—the most flexible approach for homelabbers.
+
+### Step 1: Create the Directory Structure
+
+```bash
+mkdir -p /opt/frigate/config
+mkdir -p /opt/frigate/media
+```
+
+### Step 2: Create docker-compose.yml
+
+```yaml
+version: "3.9"
+services:
+  frigate:
+    container_name: frigate
+    privileged: true
+    restart: always
+    image: ghcr.io/blakeblackshear/frigate:stable
+    shm_size: "1024mb"  # Critical for multi-camera setups
+    volumes:
+      - /opt/frigate/config:/config
+      - /opt/frigate/media:/media/frigate
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "5000:5000"   # Web UI (unauthenticated)
+      - "8971:8971"   # Web UI (authenticated, recommended)
+    environment:
+      - FRIGATE_RTSP_PASSWORD=your_secure_password
+```
+
+:::note[The shm_size Setting]
+The `shm_size` setting allocates shared memory for video buffer handling. Multi-camera setups may need more—if you see "bus error" crashes, increase this to 2048mb or higher.
+:::
+
+### Step 3: Start and Get Your Password
+
+```bash
+docker compose up -d
+docker logs frigate  # Note the auto-generated password for first login
+```
+
+### Step 4: Basic Configuration
+
+Frigate's Web UI now includes a configuration editor, but let's start with a solid foundation:
+
+```yaml
+# /opt/frigate/config/config.yml
+
+mqtt:
+  enabled: false  # Enable if using Home Assistant
+
+detectors:
+  ov:
+    type: openvino
+    device: GPU  # Use Intel GPU
+
+cameras:
+  front_door:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: rtsp://camera_ip:554/stream1
+          roles:
+            - record
+        - path: rtsp://camera_ip:554/stream2
+          roles:
+            - detect
+    detect:
+      width: 1280
+      height: 720
+      fps: 5
+    record:
+      enabled: true
+      retain:
+        days: 14
+        mode: motion
+    objects:
+      track:
+        - person
+        - car
+
+  driveway:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: rtsp://camera2_ip:554/stream1
+          roles:
+            - record
+        - path: rtsp://camera2_ip:554/stream2
+          roles:
+            - detect
+    detect:
+      width: 1280
+      height: 720
+      fps: 5
+    record:
+      enabled: true
+      retain:
+        days: 14
+        mode: motion
+    objects:
+      track:
+        - person
+        - car
+```
+
+This configuration:
+- Uses Intel OpenVINO for detection (adjust for your hardware)
+- Uses separate streams for detection (low-res, fast) and recording (high-res)
+- Tracks only people and cars (ignore dogs, cats, birds)
+- Keeps recordings for 14 days
+- Only records when motion is detected (saves storage)
+
+### Step 5: Proxmox LXC Installation
+
+If you're running Frigate in a Proxmox LXC container (highly recommended for resource isolation), you'll need to passthrough hardware for acceleration.
+
+**For Intel iGPU, add to `/etc/pve/lxc/<CTID>.conf`:**
+
+```
+lxc.cgroup2.devices.allow: c 226:0 rwm
+lxc.cgroup2.devices.allow: c 226:128 rwm
+lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir 0 0
+```
+
+**For Coral TPU USB:**
+
+```
+lxc.cgroup2.devices.allow: c 189:* rwm
+lxc.mount.entry: /dev/bus/usb dev/bus/usb none bind,optional,create=dir 0 0
+```
+
+**For Coral TPU PCIe:**
+
+```
+lxc.cgroup2.devices.allow: c 120:* rwm
+lxc.mount.entry: /dev/apex_0 dev/apex_0 none bind,optional,create=file 0 0
+```
+
+## Achieving Zero False Alerts
+
+This is where Frigate transforms from "cool technology" to "genuinely useful." The layered approach to false alert prevention is what sets it apart.
+
+### Layer 1: Tune Motion Detection
+
+Motion detection is your first filter—it triggers the AI to analyze a frame. If motion detection fires constantly, you're wasting CPU cycles.
+
+**Use the Motion Tuner:** Frigate Web UI → Settings → Motion Tuner
+
+- **Increase threshold** to reduce sensitivity to minor changes
+- **Adjust contour area** to filter out small motion areas
+- **Goal:** Motion triggers only for meaningful movement
+
+### Layer 2: Apply Motion Masks
+
+Motion masks tell Frigate to ignore static areas that constantly trigger motion—the swaying tree, the busy street in the background, the timestamp overlay.
+
+```yaml
+cameras:
+  front_yard:
+    motion:
+      mask:
+        - 0,0,1920,0,1920,100,0,100  # Top edge (sky)
+        - 500,600,700,600,700,800,500,800  # That one bush
+```
+
+:::caution[Mask Purpose]
+Motion masks affect motion detection, not object detection. Use them for areas that inherently move (trees, sky), not for areas where you don't want alerts (use zones and object masks for those).
+:::
+
+### Layer 3: Define Zones
+
+Zones are where the magic happens. Instead of alerting on any object anywhere, you only alert when objects enter specific areas.
+
+```yaml
+cameras:
+  front_door:
+    zones:
+      porch:
+        coordinates: 500,720,800,720,800,400,500,400
+        objects:
+          - person
+      driveway:
+        coordinates: 0,720,400,720,400,300,0,300
+        objects:
+          - car
+          - person
+```
+
+### Layer 4: Set Required Zones
+
+This is the most powerful filter. When you set a `required_zones`, objects must enter that zone to generate alerts or recordings.
+
+```yaml
+cameras:
+  front_door:
+    required_zones:
+      - porch
+    zones:
+      porch:
+        coordinates: 500,720,800,720,800,400,500,400
+        objects:
+          - person
+```
+
+With this configuration:
+- A person walking down the street? Ignored.
+- A car driving past? Ignored.
+- A person stepping onto your porch? **Alert.**
+
+### Layer 5: Object Filters
+
+Fine-tune detection sensitivity for specific object types:
+
+```yaml
+objects:
+  track:
+    - person
+    - car
+  filters:
+    person:
+      min_score: 0.65      # Minimum confidence to consider
+      min_area: 1000       # Filter out tiny detections
+      max_area: 100000     # Filter out impossibly large detections
+      threshold: 0.7       # Confidence required to confirm
+```
+
+### The Optimization Workflow
+
+1. **Start with defaults** and watch the debug view for a day
+2. **Tune motion detection** until only meaningful motion triggers
+3. **Add motion masks** for persistent false triggers
+4. **Define zones** for areas you actually care about
+5. **Set required_zones** to only alert on zone entry
+6. **Fine-tune object filters** based on remaining false positives
+7. **Add object masks** only for stubborn false positives in fixed locations
+
+## Home Assistant Integration
+
+Frigate's Home Assistant integration is where security becomes automation. When someone approaches your front door, your lights can turn on. When a car enters your driveway at 3 AM, you can get a notification with a snapshot.
+
+### Installation
+
+**Via HACS:**
+1. Open HACS → Integrations
+2. Search "Frigate" and click Download
+3. Restart Home Assistant
+
+**Configure the Integration:**
+1. Settings → Devices & Services → Add Integration
+2. Search "Frigate" and select it
+3. Enter your Frigate URL (typically `http://frigate_ip:5000`)
+
+### MQTT Configuration
+
+For full functionality, Frigate needs to communicate with Home Assistant via MQTT:
+
+```yaml
+# /opt/frigate/config/config.yml
+mqtt:
+  enabled: true
+  host: homeassistant_ip
+  user: mqtt_username
+  password: mqtt_password
+```
+
+### Entities Created
+
+The integration automatically creates:
+
+- **Camera entities** for live view
+- **Binary sensors** for detected objects (sensor.front_door_person, etc.)
+- **Sensors** for object counts
+- **Event entities** for automation triggers
+
+### Automation Examples
+
+**Turn on lights when person detected at night:**
+
+```yaml
+automation:
+  - alias: "Front Porch Light on Motion"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.front_door_person
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: sun.sun
+        state: "below_horizon"
+    action:
+      - service: light.turn_on
+        target:
+          entity_id: light.front_porch
+```
+
+**Send notification with snapshot:**
+
+```yaml
+automation:
+  - alias: "Person at Front Door"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.front_door_person
+        to: "on"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "Person at Front Door"
+          message: "Motion detected at the front door"
+          data:
+            image: /api/frigate/notifications/{{ states('sensor.front_door_last_person') }}/thumbnail.jpg
+```
+
+**Trigger alarm when person in restricted area:**
+
+```yaml
+automation:
+  - alias: "Unauthorized Access Alert"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.back_yard_person
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: alarm_control_panel.home
+        state: "armed_away"
+    action:
+      - service: alarm_control_panel.alarm_trigger
+        target:
+          entity_id: alarm_control_panel.home
+```
+
+## Privacy: Self-Hosted vs Cloud Cameras
+
+This isn't just about features—it's about control over your own data.
+
+### What Cloud Cameras Give Up
+
+| Concern | Ring/Nest/Arlo |
+|---------|---------------|
+| Data location | Company servers |
+| Who can access | Company employees, law enforcement (with or without warrant) |
+| Data usage | Can be used for product development, AI training |
+| Deletion | "Deleted" footage reportedly recoverable |
+| Cost | $100+/year subscription required |
+| Offline operation | Cameras useless without internet |
+
+### What Frigate Keeps
+
+| Benefit | Frigate (Self-Hosted) |
+|---------|----------------------|
+| Data location | Your hardware, your network |
+| Access control | Only you |
+| Data usage | Your choice entirely |
+| Deletion | Actually deleted |
+| Cost | $0 software, hardware only |
+| Offline operation | Full functionality without internet |
+
+The privacy difference is stark. With Frigate, your footage never leaves your network. Law enforcement would need a warrant for your physical hardware. There are no partnerships with police departments, no employee access to your feeds, no data mining.
+
+## Cost Comparison
+
+Over five years, the savings are substantial.
+
+### Frigate DIY Build (Budget)
+
+| Component | Cost |
+|-----------|------|
+| Intel N100 Mini PC | $150-200 |
+| 16GB RAM upgrade | $30 |
+| 500GB SSD | $40 |
+| **Total** | **~$220-270** |
+
+### Frigate DIY Build (Performance)
+
+| Component | Cost |
+|-----------|------|
+| Used Dell Optiplex i5-8500 | $200-300 |
+| 16GB RAM | $40 |
+| 1TB SSD | $60 |
+| **Total** | **~$300-400** |
+
+### Cloud Camera Alternative (Ring Example)
+
+| Item | 1st Year | 5 Years |
+|------|----------|---------|
+| 4 Ring cameras | $800 | $800 |
+| Protect Plus subscription | $100/yr | $500 |
+| **Total** | **$900** | **$1,300** |
+
+### 5-Year Cost Analysis
+
+| Solution | Initial | Ongoing/Year | 5-Year Total |
+|----------|---------|--------------|--------------|
+| Frigate (budget) | $250 | $0 | **$250** |
+| Frigate (performance) | $350 | $0 | **$350** |
+| Ring (4 cameras) | $800 | $100 | **$1,300** |
+
+**Bottom line:** Frigate is 3-4x cheaper over five years. And that's before considering the privacy benefits.
+
+## Camera Recommendations
+
+Not all IP cameras are created equal. Your choice of camera affects Frigate performance, reliability, and security.
+
+### What to Look For
+
+**Must-Have Features:**
+- **RTSP Streaming** — The only hard requirement for Frigate
+- **Substream Support** — Critical for performance (low-res for detection, high-res for recording)
+- **ONVIF Compliance** — Standard protocol for discovery and PTZ control
+- **Local SD Card Recording** — Backup if your NVR goes offline
+
+**Nice-to-Have Features:**
+- H.264 encoding (better Frigate compatibility than H.265)
+- PoE (Power over Ethernet) — One cable for power and data
+- Wide dynamic range — Better low-light and backlight handling
+- ONVIF Profile S and G — Full feature support
+
+### Camera Brands That Work Well
+
+**Reolink** — Excellent value, good RTSP implementation, wide selection. The 410/520/810/820 series substream support is solid. Avoid the battery/solar models for Frigate use.
+
+**Amcrest** — Good budget options, reliable RTSP. The 4K models work well with Frigate's substream approach.
+
+**Hikvision/Dahua** — Enterprise-grade cameras with excellent image quality. Note: Some models have had security vulnerabilities; keep firmware updated and isolate on VLANs.
+
+**Ubiquiti UniFi Protect** — Great ecosystem, but RTSP requires the Protect controller. Works well if you're already in the UniFi ecosystem.
+
+**Tapo/Eufy/TP-Link** — Budget consumer cameras. RTSP may be unofficial or unstable. Generally not recommended for serious setups.
+
+### Camera Positioning Tips
+
+- **Mount at 8-10 feet** — High enough to avoid tampering, low enough for clear faces
+- **Angle downward 15-30°** — Capture faces, not the tops of heads
+- **Avoid backlighting** — Don't point cameras toward windows or bright lights
+- **Consider infrared range** — Budget cameras claim 100ft IR but deliver 30ft of usable range
+- **Overlap coverage** — Ensure cameras cover each other's blind spots
+
+## Storage: How Much Do You Need?
+
+Video storage adds up fast. Let's do the math.
+
+### Recording Mode Trade-offs
+
+| Mode | Storage Use | Coverage | Best For |
+|------|------------|----------|----------|
+| 24/7 Continuous | Highest | Everything, all the time | Critical areas |
+| Motion-Based | Medium | Only when motion detected | General use |
+| Event-Based | Lowest | Only when AI detects objects | Storage-conscious setups |
+
+### Storage Calculation Example
+
+A single 4K camera recording 24/7 at 15 FPS with H.264 compression:
+
+```
+Bitrate: ~4 Mbps
+Per day: 4 Mbps × 3600 × 24 / 8 = ~43 GB
+Per week: ~300 GB
+Per month: ~1.3 TB
+```
+
+With 4 cameras at 1080p, recording only on events (typically 2-4 hours/day per camera):
+
+```
+Per day: ~15-25 GB
+Per month: ~500 GB
+Per year: ~6 TB
+```
+
+### Storage Recommendations
+
+**SSDs for Frigate database/cache:**
+- Modern SSDs handle continuous writes well
+- Faster UI and clip retrieval
+- 500GB-1TB is sufficient for database + recent clips
+
+**HDDs for long-term archives:**
+- NVR-rated drives: WD Purple, Seagate SkyHawk
+- Designed for 24/7 write workloads
+- 4TB+ for reasonable retention
+
+**Avoid:**
+- Network storage (NFS/SMB) for live recording — Latency causes recording gaps
+- Consumer desktop drives — Not rated for continuous writes
+
+:::tip[Retention Strategy]
+A hybrid approach works well: SSD (500GB-1TB) for Frigate database and recent events (last 14-30 days), then archive older clips to HDD if needed. Most incidents are discovered within days, so long-term retention is often unnecessary.
+:::
+
+## Troubleshooting Common Issues
+
+### "Bus Error" Crashes
+
+This indicates insufficient shared memory. Increase `shm_size` in your Docker Compose:
+
+```yaml
+services:
+  frigate:
+    shm_size: "2048mb"  # Increase from default 1024mb
+```
+
+### High CPU Usage
+
+Several common causes:
+
+1. **No substream configured** — Processing 4K video for detection instead of 720p
+2. **Too high detection FPS** — 5 FPS is plenty for most use cases
+3. **No hardware acceleration** — Ensure your detector is configured correctly
+
+### Cameras Not Showing Up
+
+Check RTSP connectivity first:
+
+```bash
+ffprobe rtsp://camera_ip:554/stream1
+```
+
+If this fails, the issue is with your camera, not Frigate.
+
+### Detection Not Working
+
+Verify your detector configuration matches your hardware:
+
+```yaml
+# For Intel OpenVINO
+detectors:
+  ov:
+    type: openvino
+    device: GPU
+
+# For NVIDIA
+detectors:
+  tensorrt:
+    type: tensorrt
+
+# For Coral USB
+detectors:
+  coral:
+    type: edgetpu
+    device: usb
+```
+
+### Web UI Slow or Unresponsive
+
+This often indicates database bloat. Check your recording retention settings:
+
+```yaml
+record:
+  enabled: true
+  retain:
+    days: 14
+    mode: motion  # Don't record 24/7 unless necessary
+```
+
+## Monitoring Your Frigate Installation
+
+Like any critical homelab service, Frigate benefits from monitoring.
+
+### Built-in Stats
+
+Frigate exposes metrics at `/api/stats`:
+
+- FPS for each camera
+- Detection latency
+- Camera connectivity status
+- Storage usage
+
+### Prometheus Integration
+
+Frigate can export Prometheus metrics for integration with Grafana:
+
+```yaml
+# In config.yml
+telemetry:
+  enabled: true
+  stats:
+    export:
+      prometheus:
+        enabled: true
+```
+
+### Key Metrics to Watch
+
+- **Detection FPS** — Should stay above your configured detection FPS
+- **Detection latency** — Under 100ms is good; over 200ms needs investigation
+- **Skipped frames** — Indicates CPU/GPU overload
+- **Camera uptime** — Catch network issues early
+
+### Alerting Rules
+
+Set up alerts for:
+- Camera offline for more than 5 minutes
+- Detection latency above 200ms for more than 10 minutes
+- Storage above 85% capacity
+- Frigate container restart frequency
+
+## When Things Go Wrong: Backup Strategies
+
+Your NVR is only useful if it's recording. Plan for failures.
+
+### Camera Redundancy
+
+- **SD card recording** — Most cameras support local recording as backup
+- **Power backup** — UPS (uninterruptible power supply) for cameras and NVR
+- **Network redundancy** — Managed switch with PoE can alert on disconnected cameras
+
+### Frigate Redundancy
+
+For critical installations, consider:
+- **Proxmox snapshots** — Quick rollback from configuration errors
+- **Docker volume backups** — Regular backups of `/opt/frigate/config`
+- **Secondary NVR** — Blue Iris or another NVR as hot standby
+
+### Data Recovery
+
+If your Frigate database gets corrupted:
+
+1. Stop the container: `docker compose down`
+2. Move the corrupt database: `mv /opt/frigate/media/frigate.db /opt/frigate/media/frigate.db.bak`
+3. Start fresh: `docker compose up -d`
+4. Note: This loses event history, but recordings on disk are preserved
+
+## Getting Started: Your Next Steps
+
+1. **Inventory your cameras** — Ensure they support RTSP streaming
+2. **Choose your hardware** — Match to your camera count and desired features
+3. **Deploy Frigate** — Docker on bare metal or LXC on Proxmox
+4. **Configure detection** — Start simple (person, car), add refinement layers
+5. **Define zones** — Only alert where it matters
+6. **Integrate with Home Assistant** — Automation is the real power
+7. **Optimize for false alerts** — Motion masks, required zones, object filters
+
+The initial setup takes an afternoon. Fine-tuning is iterative—expect to spend a week or two adjusting masks and zones as you learn your cameras' quirks.
+
+The result? A security system that actually respects your privacy, costs a fraction of cloud alternatives, and only notifies you when something actually matters.
+
+---
+
+*Questions about your Frigate setup? Hit me up on social media or drop a comment below. Happy monitoring!*
