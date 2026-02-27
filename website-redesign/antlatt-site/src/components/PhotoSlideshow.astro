@@ -28,6 +28,8 @@ const photos: Photo[] = [
         alt={photos[0].alt}
         class="slideshow-image"
         loading="eager"
+        width="450"
+        height="600"
       />
     </div>
   </noscript>
@@ -44,6 +46,8 @@ const photos: Photo[] = [
             class="slide-image"
             loading={index === 0 ? 'eager' : 'lazy'}
             decoding="async"
+            width="450"
+            height="600"
           />
           {photo.caption && (
             <div class="slide-caption">{photo.caption}</div>

@@ -168,35 +168,7 @@ const pageUrl = Astro.url.href.replace(/([^:]\/)\/+/g, '$1');
     <!-- Web Vitals Tracking -->
     <WebVitals />
     
-    <script>
-      // Mobile menu toggle
-      const mobileMenuTrigger = document.getElementById('mobile-menu-trigger');
-      const mobileMenu = document.getElementById('mobile-menu');
-      
-      mobileMenuTrigger?.addEventListener('click', () => {
-        mobileMenu?.classList.toggle('hidden');
-      });
-      
-      // Search trigger (open modal on click)
-      const searchTrigger = document.getElementById('search-trigger');
-      const searchModal = document.getElementById('search-modal');
-      
-      searchTrigger?.addEventListener('click', () => {
-        searchModal?.classList.add('showing');
-        document.body.style.overflow = 'hidden';
-        (document.getElementById('search-input') as HTMLInputElement)?.focus();
-      });
-      
-      // Highlight active navigation link
-      const currentPath = window.location.pathname;
-      const navLinks = document.querySelectorAll('.nav-link, .nav-link-mobile');
-      
-      navLinks.forEach(link => {
-        const href = link.getAttribute('href');
-        if (href === currentPath || (currentPath.startsWith(href || '') && href !== '/')) {
-          link.classList.add('active');
-        }
-      });
-    </script>
+    <!-- Navigation and search functionality (deferred for better performance) -->
+    <script src="/js/navigation.js" defer></script>
   </body>
 </html>
