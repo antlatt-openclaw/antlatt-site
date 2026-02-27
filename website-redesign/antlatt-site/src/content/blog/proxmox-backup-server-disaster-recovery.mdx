@@ -1,0 +1,599 @@
+---
+title: "Proxmox Backup Server: Complete Disaster Recovery Guide for Homelabs"
+description: "A comprehensive guide to setting up Proxmox Backup Server for bulletproof disaster recovery in your homelab"
+date: 2025-02-26
+tags: ["proxmox", "backup", "disaster-recovery", "homelab", "self-hosting"]
+image: "/images/blog/proxmox-backup-server-disaster-recovery/hero.webp"
+---
+
+import Callout from "../../components/Callout.astro";
+
+You've spent months perfecting your homelab. Carefully configured VMs, containerized services, automated everything with Ansible. Then disaster strikes—a failed drive, a botched update, or worse: ransomware. Without a proper backup strategy, you're starting from scratch.
+
+Enter **Proxmox Backup Server (PBS)**—the enterprise-grade, open-source backup solution that should be the cornerstone of every homelab. In this guide, we'll walk through setting up PBS from scratch, configuring bulletproof backup strategies, and ensuring you can recover from anything short of an asteroid impact.
+
+## Why Proxmox Backup Server?
+
+If you're already running Proxmox Virtual Environment (PVE) for your VMs and containers, PBS is the natural choice for backups. But even if you're not on Proxmox, PBS offers compelling features:
+
+- **Block-level deduplication** stores only changed data blocks, cutting storage needs by 60-90% for similar VMs
+- **Incremental backups** transfer only what's changed after the first full backup
+- **AES-256-GCM encryption** protects your data at rest and in transit
+- **Ransomware-resistant design**—existing backups cannot be modified, only new ones created
+- **Single file restore** lets you recover one config file without restoring an entire VM
+
+<Callout type="tip">
+PBS isn't just for Proxmox. It can back up physical hosts and supports a generic client for any Linux system. Think of it as a deduplicating backup瑞士军刀 for your entire infrastructure.
+</Callout>
+
+## Before You Begin: Hardware Requirements
+
+PBS is efficient, but it's not magic. Here's what you need:
+
+**Minimum (Testing Only):**
+- 64-bit CPU, 2+ cores
+- 2 GB RAM
+- 8 GB disk for OS
+
+**Recommended for Homelab:**
+- Modern 4+ core CPU
+- 4 GB RAM minimum, plus 1 GB per TB of backup storage
+- 32+ GB SSD for the OS (separate from backup storage!)
+- Multi-TB storage for backups (SSD preferred, HDD acceptable)
+
+<Callout type="warning">
+Never install PBS on the same hardware as your Proxmox VE host. If your main server dies, your backup server should still be accessible. PBS belongs on dedicated hardware—period.
+</Callout>
+
+### Storage Considerations
+
+Your choice of storage directly impacts backup and restore performance:
+
+| Storage Type | Performance | Best For |
+|--------------|-------------|----------|
+| Local SSD ZFS RAID10 | Fastest | Production, critical workloads |
+| HDD RAID10 + SSD special device | Good | Large backup sets on a budget |
+| HDD only | Slowest | Small setups, non-urgent restores |
+
+For HDD-based setups, add a ZFS special device mirror (small SSD) to dramatically improve metadata performance. Trust me—garbage collection and verification jobs will thank you.
+
+## Installation
+
+### Step 1: Download and Flash
+
+Grab the ISO from [proxmox.com/downloads](https://www.proxmox.com/downloads):
+
+```bash
+# Download the latest PBS ISO
+wget https://downloads.proxmox.com/proxmox-backup-server/iso/
+
+# Flash to USB (adjust device path!)
+sudo dd if=proxmox-backup-server_*.iso of=/dev/sdX bs=1M conv=fsync status=progress
+```
+
+Or use [Balena Etcher](https://www.balena.io/etcher/) if you prefer a GUI.
+
+### Step 2: Run the Installer
+
+Boot your dedicated hardware from the USB drive. The installer is straightforward:
+
+1. Accept the EULA
+2. Select target disk for OS (I use "ext4" for simplicity, "ZFS" if you want built-in redundancy)
+3. Set your hostname, IP address, timezone
+4. Create a strong root password
+5. Reboot when complete
+
+After reboot, access the web UI at `https://<YOUR_IP>:8007`
+
+### Step 3: Post-Install Tweaks
+
+Apply some optimizations via the web shell (Datacenter → Shell):
+
+```bash
+# Reduce swap usage (PBS is RAM-hungry, not swap-hungry)
+echo "vm.swappiness=10" >> /etc/sysctl.conf
+
+# Apply immediately
+sysctl -p
+```
+
+If you're not using IPv6:
+
+```bash
+echo "net.ipv6.conf.all.disable_ipv6 = 1" >> /etc/sysctl.conf
+echo "net.ipv6.conf.default.disable_ipv6 = 1" >> /etc/sysctl.conf
+sysctl -p
+```
+
+## Setting Up Your First Datastore
+
+A datastore is where PBS stores your backups. Create one before anything else.
+
+### Option A: Web UI
+
+1. Go to **Configuration → Datastores → Add**
+2. Enter a name (I use "main")
+3. Set the backing path (e.g., `/mnt/backups`)
+4. Configure schedules for garbage collection and pruning
+
+### Option B: CLI
+
+```bash
+# Create mount point
+mkdir -p /mnt/backups
+
+# If using ZFS (recommended for larger setups):
+zpool create -f backups mirror /dev/sda /dev/sdb
+
+# Create the datastore
+proxmox-backup-manager datastore create main /mnt/backups
+```
+
+<Callout type="info">
+If you're using ZFS, create your pool first, then point the datastore to the mount point. PBS manages what's inside the datastore directory—don't point it at the root of a ZFS pool that might have other data.
+</Callout>
+
+## Security: Create a Dedicated Backup User
+
+This is where 90% of people make a critical mistake: they use `root@pam` for backups. Don't.
+
+### Why Not Root?
+
+If your Proxmox VE host gets compromised, an attacker with root credentials could delete all your backups. PBS lets you create users with write-only access—they can create backups but can't delete them.
+
+### Create a Backup User
+
+```bash
+# Create the user
+proxmox-backup-manager user create backup@pbs --password $(openssl rand -base64 32)
+
+# Generate an API token for automation
+proxmox-backup-manager user generate-token backup@pbs api-token
+```
+
+Save the API token output! You won't see it again.
+
+### Set Minimal Permissions
+
+```bash
+# DatastoreBackup role = write-only, no delete capability
+proxmox-backup-manager acl update /datastore/main DatastoreBackup \
+  --auth-id 'backup@pbs!api-token'
+```
+
+<Callout type="warning">
+The DatastoreBackup role provides ransomware protection—users with this role can only create new backups, never delete existing ones. For recovery operations, you'll use your admin account, which is stored separately.
+</Callout>
+
+## Connect Proxmox VE to Your PBS
+
+Now we'll configure your PVE hosts to use PBS for backups.
+
+### Get the Certificate Fingerprint
+
+On your PBS server:
+
+```bash
+proxmox-backup-manager cert info | grep Fingerprint
+```
+
+Copy this fingerprint—you'll need it to verify the server identity.
+
+### Add PBS as Storage in PVE
+
+On each Proxmox VE host:
+
+```bash
+pvesm add pbs pbs-backup \
+  --server 192.168.1.100 \
+  --username 'backup@pbs!api-token' \
+  --password 'YOUR-API-TOKEN-HERE' \
+  --datastore main \
+  --fingerprint 'XX:XX:XX:...'  # Your fingerprint from above
+```
+
+Or use the GUI: **Datacenter → Storage → Add → Proxmox Backup Server**
+
+### Verify the Connection
+
+```bash
+# List available storage
+pvesm status | grep pbs
+
+# Should show your PBS datastore
+```
+
+## Backup Strategies That Actually Work
+
+Now for the fun part: setting up automated backups that run like clockwork.
+
+### The 3-2-1 Rule
+
+Before diving into schedules, understand the gold standard:
+
+| Component | Meaning | PBS Implementation |
+|-----------|---------|-------------------|
+| **3 copies** | Original + 2 backups | Running VM + PBS backup + offsite |
+| **2 different media** | Different storage types | Local PBS disk + NAS or cloud |
+| **1 offsite** | Geographic separation | Remote PBS sync or S3 backend |
+
+We'll implement this progressively.
+
+### Create Your First Backup Job
+
+In PVE, go to **Datacenter → Backup → Add**:
+
+```bash
+# Via CLI (run on PVE)
+pvesh create /cluster/backup \
+  -id nightly-backup \
+  -schedule "22:00" \
+  -storage pbs-backup \
+  -mode snapshot \
+  -all 1 \
+  -enabled 1 \
+  -compress zstd
+```
+
+Key options explained:
+- `-mode snapshot` - Uses filesystem snapshots for consistent backups (recommended)
+- `-all 1` - Back up all VMs and containers
+- `-compress zstd` - Uses efficient ZStd compression
+
+### Retention Policy
+
+Don't keep backups forever—but don't delete them too quickly either. A good homelab baseline:
+
+```bash
+--keep-last 3      # Quick recovery from "oops" moments
+--keep-daily 7     # One week of daily backups
+--keep-weekly 4    # One month of weekly backups  
+--keep-monthly 2   # Two monthly snapshots
+```
+
+<Callout type="tip">
+Ransomware often lies dormant for days or weeks before activating. Keeping weekly and monthly backups provides a safety net—if your daily backups are encrypted, you can fall back to last week's clean backup.
+</Callout>
+
+### Schedule Optimization
+
+Here's a recommended schedule that works well for homelabs:
+
+```
+21:30 - Prune job (frees space before new backups)
+22:00 - Backup job (all VMs/containers)
+01:00 - Verification job (checks integrity after backups)
+Sun 02:00 - Garbage collection (reclaims space weekly)
+```
+
+Set these up in PBS:
+
+```bash
+# Prune job
+proxmox-backup-manager prune-job create daily-prune \
+  --store main \
+  --schedule "21:30" \
+  --keep-last 3 \
+  --keep-daily 7 \
+  --keep-weekly 4 \
+  --keep-monthly 2
+
+# Verification job
+proxmox-backup-manager verify-job create verify-main \
+  --store main \
+  --schedule "01:00" \
+  --ignore-verified true \
+  --outdated-after 30
+
+# Garbage collection (edit datastore)
+proxmox-backup-manager datastore update main --gc-schedule "sun 02:00"
+```
+
+<Callout type="warning">
+Run prune **before** backups, not after. If your disk fills up during a backup, the job fails. Pruning first ensures you have space.
+</Callout>
+
+## Encryption: Protecting Your Backups
+
+PBS supports client-side encryption with AES-256-GCM. Your backups are encrypted before they leave your PVE host.
+
+### Create an Encryption Key
+
+```bash
+# Generate a new key
+proxmox-backup-client key create /root/backup.key
+# You'll be prompted for a password to protect the key
+```
+
+### Use Encryption in Backup Jobs
+
+In PVE, edit your backup job and add:
+
+```bash
+--keyfile /root/backup.key
+```
+
+Or for new jobs:
+
+```bash
+vzdump --all 1 --mode snapshot --storage pbs-backup \
+  --keyfile /root/backup.key
+```
+
+### The Master Key Safety Net
+
+<Callout type="warning">
+If you lose your encryption key, your backups are gone. Period. There's no backdoor—this is a feature, not a bug.
+</Callout>
+
+Set up a master key for recovery:
+
+```bash
+# Create a master key pair
+proxmox-backup-client key create-master-key
+
+# This creates:
+# - master-public.pem (import to PBS)
+# - master-private.pem (STORE SECURELY OFFLINE!)
+```
+
+Store the private key somewhere safe:
+1. Password manager (1Password, Bitwarden, etc.)
+2. USB flash drive in a fireproof safe
+3. Paper backup with QR code
+
+```bash
+# Create a printable paper key
+proxmox-backup-client key paperkey --output-format text > encryption-key-qr.txt
+```
+
+## Restore Procedures: When Things Go Wrong
+
+Backups are useless if you can't restore them. Let's cover the scenarios.
+
+### Scenario 1: Full VM/Container Restore
+
+This is the most common case—restore an entire VM or container.
+
+**Via PVE GUI:**
+1. Select the VM in the left sidebar
+2. Click **Backup** in the menu
+3. Click **Restore**
+4. Select the backup snapshot from PBS
+5. Choose target storage and click **Restore**
+
+**Via CLI:**
+```bash
+# List available backups
+pvesm list pbs-backup
+
+# Restore to new VM ID
+qmrestore /mnt/pbs-backup/dump/vzdump-qemu-100.vma.zst 101 --storage local-zfs
+```
+
+### Scenario 2: Single File Restore
+
+You deleted `/etc/nginx/nginx.conf` and need it back—without restoring the entire VM.
+
+**Interactive Shell Method:**
+```bash
+# Connect to PBS and browse the backup catalog
+proxmox-backup-client catalog shell host/myvm/2024-12-03T09:35:01Z root.pxar
+
+# Navigate like a normal filesystem
+pxar:/ > ls
+pxar:/ > cd etc/nginx
+pxar:/etc/nginx > ls
+
+# Restore specific file
+pxar:/etc/nginx > restore nginx.conf /tmp/restored/
+
+# Or restore multiple files with patterns
+pxar:/etc > restore /tmp/restored/ --pattern **/*.conf
+```
+
+**FUSE Mount Method:**
+```bash
+# Mount the backup as a filesystem
+proxmox-backup-client mount host/myvm/2024-12-03T09:35:01Z root.pxar /mnt/backup
+
+# Copy what you need
+cp /mnt/backup/etc/nginx/nginx.conf /tmp/
+
+# Unmount when done
+umount /mnt/backup
+```
+
+### Scenario 3: Bare Metal Recovery
+
+Your entire Proxmox host died. Now what?
+
+1. Install fresh Proxmox VE on replacement hardware
+2. Configure network access
+3. Add PBS storage connection (see earlier steps)
+4. Restore VMs from backup
+5. Reconfigure clustering/networking if applicable
+
+<Callout type="info">
+Document your Proxmox host configuration! Keep notes on networking, cluster membership, and custom configurations. These don't survive a bare metal restore of guest VMs.
+</Callout>
+
+## Storage Options and Best Practices
+
+### Local Storage
+
+| Filesystem | Pros | Cons | Recommendation |
+|------------|------|------|----------------|
+| **ext4** | Stable, simple, no RAM overhead | No checksums | Small setups, limited RAM |
+| **XFS** | High performance, large files | Less PBS-optimized | High throughput needs |
+| **ZFS** | Checksums, compression, RAID, snapshots | RAM hungry (1GB/TB) | Production, data integrity focus |
+
+### Network Storage (NFS/iSCSI)
+
+For NAS-based backups:
+
+```bash
+# Mount NFS share
+mount -t nfs 192.168.1.200:/backups /mnt/backups
+
+# Create datastore pointing to NFS mount
+proxmox-backup-manager datastore create nas-backup /mnt/backups
+```
+
+<Callout type="warning">
+Network storage adds complexity and failure modes. If your NAS goes down, backups fail. Local storage with periodic sync to a remote PBS is more reliable for critical backups.
+</Callout>
+
+### Cloud/S3 Backend (PBS 4+)
+
+PBS can use S3-compatible storage as a backend:
+
+```bash
+# Configure S3 endpoint
+proxmox-backup-manager s3 endpoint create backblaze-b2 \
+  --access-key 'YOUR_ACCESS_KEY' \
+  --secret-key 'YOUR_SECRET_KEY' \
+  --endpoint 's3.us-west-000.backblazeb2.com' \
+  --region us-west-000
+
+# Create datastore with S3 backend
+proxmox-backup-manager datastore create cloud-backup \
+  /mnt/cache/s3-cache \
+  --backend type=s3,client=backblaze-b2,bucket=pbs-backups
+```
+
+**Watch out for:**
+- Egress fees on downloads
+- API request costs
+- Local cache requirements (64-128 GB recommended)
+
+## Common Pitfalls (And How to Avoid Them)
+
+### 1. Virtualizing PBS on Your Main Host
+
+**The mistake:** Running PBS as a VM on the same PVE host you're backing up.
+
+**The consequence:** When the host fails, PBS is down too. You can't restore anything.
+
+**The fix:** Always run PBS on dedicated hardware. A cheap mini PC or Raspberry Pi (for small setups) works.
+
+### 2. Using Root Credentials for Backups
+
+**The mistake:** Backing up with `root@pam` because it's easy.
+
+**The consequence:** Compromised PVE host = compromised backups. Attackers can delete everything.
+
+**The fix:** Use a dedicated backup user with `DatastoreBackup` role (write-only).
+
+### 3. Never Testing Restores
+
+**The mistake:** Setting up backups and assuming they work.
+
+**The consequence:** Discovery that restores fail when you need them most.
+
+**The fix:** Monthly restore tests. Pick a non-critical VM, delete it, restore from backup, verify it works.
+
+```bash
+# Quick verification job check
+proxmox-backup-manager verify-job update verify-main --schedule "01:00"
+```
+
+### 4. Forgetting Garbage Collection
+
+**The mistake:** Pruning old backups but not running garbage collection.
+
+**The consequence:** Disk fills up because prune only removes index files, not actual data chunks.
+
+**The fix:** Schedule weekly GC:
+
+```bash
+proxmox-backup-manager datastore update main --gc-schedule "sun 02:00"
+```
+
+### 5. Storing Encryption Keys on Backed-Up Systems
+
+**The mistake:** Keeping your backup encryption key on a VM that's backed up.
+
+**The consequence:** When that VM fails, you lose both the data AND the key to restore it.
+
+**The fix:** Store keys separately—password manager, USB drive, paper backup.
+
+## Real-World Homelab Scenarios
+
+### Scenario A: The "I Just Want Backups" Setup
+
+You have one PVE host with 5-10 VMs/containers. Budget is limited.
+
+**Hardware:** Old mini PC with 4 GB RAM + 2 TB external USB drive
+**PBS Config:** ext4 on USB drive, daily backups at 22:00
+**Retention:** `--keep-daily 7 --keep-weekly 4`
+**Security:** Basic backup user, no encryption (optional for homelab)
+
+This gives you a week of daily backups and a month of weekly snapshots. Good enough for most homelab disasters.
+
+### Scenario B: The "I've Seen Things" Setup
+
+You've been burned before. You want real protection.
+
+**Hardware:** Dedicated server with 16 GB RAM, ZFS mirror SSDs for OS, 8 TB HDD RAIDZ for backups
+**PBS Config:** ZFS datastore with weekly GC and daily verification
+**Retention:** `--keep-last 3 --keep-daily 7 --keep-weekly 4 --keep-monthly 3`
+**Security:** Dedicated backup user, client-side encryption, master key stored offline
+**Offsite:** Remote PBS at a friend's house with sync, or Backblaze B2 S3 backend
+
+This implements the full 3-2-1 strategy with encryption and verification.
+
+### Scenario C: The "I'm Running Production Workloads" Setup
+
+Your homelab serves real users. Downtime costs money.
+
+**Hardware:** Dedicated PBS server with 32 GB RAM, all-SSD storage in RAID10
+**PBS Config:** ZFS with encryption, hourly snapshots for critical VMs
+**Retention:** Aggressive—hourly for 24 hours, then daily/weekly/monthly
+**Security:** Multiple backup users per PVE cluster, write-only tokens, master key in multiple physical locations
+**Offsite:** Synchronous replication to remote PBS + immutable S3 backup
+
+Overkill? Maybe. But when you're on call, "overkill" becomes "adequate."
+
+## Quick Reference
+
+```bash
+# View datastores
+proxmox-backup-manager datastore list
+
+# List all snapshots
+proxmox-backup-client snapshot list
+
+# Manual backup
+vzdump 100 --mode snapshot --storage pbs-backup
+
+# Restore specific file
+proxmox-backup-client catalog shell host/vm/2024-01-01T00:00:00Z root.pxar
+
+# Manual garbage collection
+proxmox-backup-client garbage-collect
+
+# Benchmark performance
+proxmox-backup-client benchmark
+
+# Protect snapshot from deletion
+proxmox-backup-client snapshot protected update host/vm/2024-01-01T00:00:00Z true
+```
+
+## Wrapping Up
+
+Proxmox Backup Server isn't just "good enough" for homelabs—it's genuinely excellent. The same technology protecting enterprise datacenters can run on a $50 mini PC in your closet.
+
+The key takeaways:
+
+1. **Dedicated hardware**—never virtualize PBS on what you're backing up
+2. **Write-only permissions**—protect backups from ransomware
+3. **Test restores**—untested backups are just wishful thinking
+4. **3-2-1 strategy**—local backup, offsite backup, different media
+5. **Encrypt**—your backups contain sensitive data
+
+Set it up once, verify it works, and sleep better knowing your homelab can survive anything short of physical destruction.
+
+---
+
+*Have questions about your specific setup? Drop by the [Proxmox Forum](https://forum.proxmox.com/) or hit me up on [Reddit](https://www.reddit.com/r/Proxmox/).*

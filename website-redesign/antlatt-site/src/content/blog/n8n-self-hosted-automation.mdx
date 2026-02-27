@@ -1,0 +1,485 @@
+---
+title: "n8n Self-Hosted Automation: Complete Guide for Homelab Workflows"
+description: "Learn how to set up n8n automation platform in your homelab with practical workflow examples and integrations"
+date: 2025-02-26
+tags: ["n8n", "automation", "self-hosting", "homelab", "workflows"]
+image: "/images/blog/n8n-self-hosted-automation/hero.webp"
+---
+
+import Callout from "../../components/Callout.astro";
+
+Ever wanted to connect your Home Assistant alerts to Discord? Or have your NAS automatically organize downloads based on file type? Maybe build a private AI assistant that actually knows your documents?
+
+Enter n8n—pronounced "n-eight-n" (short for "nodemation")—the self-hosted automation platform that's become the darling of the homelab community. With over 400 integrations, native AI capabilities via LangChain, and a fair-code license that won't cost you a cent, it's the missing piece between "I have all these services" and "they actually work together."
+
+## Why Self-Host n8n?
+
+Before we dive into installation, let's address the elephant in the room: **why not just use Zapier or Make?**
+
+### The Cost-Privacy Tradeoff
+
+Cloud automation platforms charge by the task. Zapier's free tier gives you 100 tasks per month. Need 2,000? That's $49/month. Running multiple workflows that trigger dozens of times daily? Your bill quickly spirals into hundreds of dollars annually.
+
+n8n self-hosted is **free forever**. No limits on workflows, users, or executions. You provide the infrastructure—you own the automation.
+
+<Callout type="tip">
+**Quick math:** If you're running 5 workflows that each trigger 20 times daily, that's 3,000 executions monthly. On Zapier, you'd need their $89/month plan. With n8n self-hosted? $0.
+</Callout>
+
+### Data Privacy
+
+Every workflow you create, every credential you store, every piece of data that flows through your automations—it all stays on your hardware. For homelab enthusiasts running services like Home Assistant, Proxmox, or local AI models, this matters. Your smart home data, server metrics, and personal documents never leave your network.
+
+## Installation: Getting n8n Running
+
+n8n offers three installation paths: Docker, npm, or cloud. For homelabs, Docker is the clear winner—clean isolation, simple updates, and easy integration with your existing container infrastructure.
+
+### Quick Docker Setup
+
+The fastest way to get started:
+
+```bash
+# Create persistent storage
+docker volume create n8n_data
+
+# Run n8n
+docker run -d \
+  --name n8n \
+  -p 5678:5678 \
+  -e GENERIC_TIMEZONE="America/New_York" \
+  -e TZ="America/New_York" \
+  -e N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true \
+  -e N8N_RUNNERS_ENABLED=true \
+  -v n8n_data:/home/node/.n8n \
+  docker.n8n.io/n8nio/n8n
+```
+
+Open `http://your-server:5678` and you'll see n8n's setup screen. Create your owner account, and you're in.
+
+<Callout type="warning">
+**Don't expose port 5678 directly to the internet.** Always run n8n behind a reverse proxy with SSL. We'll cover that shortly.
+</Callout>
+
+### Production Setup with Docker Compose
+
+For a robust homelab deployment, use Docker Compose with PostgreSQL for data persistence:
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: n8n-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: n8n
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+      - GENERIC_TIMEZONE=America/New_York
+      - TZ=America/New_York
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  n8n_data:
+```
+
+Create a `.env` file alongside:
+
+```bash
+# .env
+POSTGRES_PASSWORD=your-secure-password-here
+```
+
+Run with:
+
+```bash
+docker compose up -d
+```
+
+<Callout type="info">
+**Why PostgreSQL over SQLite?** SQLite works fine for testing, but PostgreSQL handles concurrent connections better and is required for queue mode (more on that later).
+</Callout>
+
+### The npm Alternative
+
+If you prefer running n8n directly on your host (perhaps you're integrating with local scripts):
+
+```bash
+# Try without installing
+npx n8n
+
+# Or install globally
+npm install n8n -g
+n8n start
+```
+
+You'll need Node.js 20.19 or higher. This approach is less isolated—Docker remains the recommended path.
+
+## Key Features You'll Actually Use
+
+### Visual Workflow Builder
+
+n8n's canvas-style editor lets you drag nodes onto a workspace and connect them visually. Each node represents an action—fetching data, transforming it, or sending it somewhere.
+
+**[Screenshot: The n8n workflow canvas showing a simple "Webhook → HTTP Request → Slack" flow with node connections highlighted]**
+
+### 400+ Built-in Integrations
+
+From AWS to Zulip, n8n has nodes for most popular services:
+
+- **Cloud storage:** Google Drive, Dropbox, S3, Backblaze
+- **Communication:** Slack, Discord, Telegram, Email
+- **Databases:** PostgreSQL, MySQL, MongoDB, Redis
+- **Home automation:** Home Assistant (dedicated node!)
+- **Developer tools:** GitHub, GitLab, Docker Hub
+- **AI/ML:** OpenAI, Anthropic, LangChain, Hugging Face
+
+### Code When You Need It
+
+Not every integration exists out of the box. n8n's **Code node** lets you write JavaScript or Python directly in your workflow. You can even install npm packages:
+
+```javascript
+// Inside a Code node
+const crypto = require('crypto');
+const hash = crypto.createHash('sha256').update($input.item.json.data).digest('hex');
+
+return { hash };
+```
+
+### AI-Native with LangChain
+
+n8n isn't just riding the AI hype—it has deep LangChain integration for building sophisticated AI workflows:
+
+- **AI Agents:** Autonomous workflows that use tools and make decisions
+- **Vector Stores:** Connect to Qdrant, Pinecone, or Chroma for RAG
+- **Model Flexibility:** OpenAI, Anthropic, or local models via Ollama
+
+<Callout type="tip">
+**Self-hosted AI starter kit:** n8n publishes an official Docker Compose setup with n8n + Ollama + Qdrant + PostgreSQL. Perfect for private AI workflows without data leaving your infrastructure.
+</Callout>
+
+## Homelab Workflow Examples
+
+Let's look at practical automations for your self-hosted stack.
+
+### 1. Home Assistant Integration Bridge
+
+Extend Home Assistant's automation capabilities by routing events through n8n:
+
+**Use case:** When a door sensor triggers at night, send a rich notification to Discord with a camera snapshot.
+
+```
+Home Assistant Trigger → Wait (5s for camera) → HTTP Request (camera proxy) → Discord Message
+```
+
+The n8n Home Assistant node supports:
+- Triggering on state changes
+- Calling services
+- Fetching camera proxy images
+- Getting entity logs
+
+### 2. Server Health Monitoring
+
+Keep tabs on your Proxmox or Docker hosts:
+
+```
+Schedule (every 5 min) → HTTP Request (Proxmox API) → IF node (CPU > 80%) → Alert
+```
+
+**[Screenshot: A monitoring workflow with the IF node's conditional logic panel open, showing CPU threshold checks]**
+
+### 3. Media Server Automation
+
+Coordinate your media stack (Radarr, Sonarr, Plex):
+
+- Auto-organize completed downloads
+- Notify when new episodes are grabbed
+- Trigger library scans after downloads
+
+### 4. Backup Orchestration
+
+Create intelligent backup workflows:
+
+```
+Schedule (3 AM daily) → SSH (connect to server) → Run backup script → Check result → Email summary
+```
+
+### 5. AI Document Assistant
+
+Build a private document Q&A system:
+
+```
+Webhook (receive question) → Vector Store Search (Qdrant) → AI Model (Ollama) → Return answer
+```
+
+No data leaves your network—the LLM runs locally via Ollama, and documents are indexed in your Qdrant instance.
+
+## Security: Locking It Down
+
+### Never Skip SSL
+
+Running n8n on HTTP over your LAN is fine for testing, but for any external access, SSL is mandatory.
+
+**Option A: Caddy (automatic HTTPS)**
+
+```yaml
+# Add to docker-compose.yml
+  caddy:
+    image: caddy:latest
+    container_name: n8n-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+    depends_on:
+      - n8n
+
+volumes:
+  caddy_data:
+```
+
+**Caddyfile:**
+
+```
+automation.yourdomain.com {
+    reverse_proxy n8n:5678
+}
+```
+
+**Option B: Nginx Proxy Manager**
+
+If you're already running NPM for other services, add n8n as a proxy host with Let's Encrypt certificates.
+
+### Enable Authentication
+
+n8n supports multiple auth methods:
+
+- **Basic auth:** Username/password (default)
+- **SMTP invites:** Email-based user management
+- **2FA:** Two-factor authentication for all users
+- **SSO/SAML:** Enterprise feature
+
+Configure SMTP for user invites:
+
+```bash
+# Environment variables
+N8N_EMAIL_MODE=smtp
+N8N_SMTP_HOST=smtp.your-provider.com
+N8N_SMTP_PORT=465
+N8N_SMTP_USER=your-username
+N8N_SMTP_PASS=your-password
+N8N_SMTP_SENDER="n8n <n8n@yourdomain.com>"
+N8N_SMTP_SSL=true
+```
+
+### Protect Your Credentials
+
+n8n encrypts stored credentials using a key generated on first launch. For added security (or if you're running queue mode), specify your own:
+
+```bash
+N8N_ENCRYPTION_KEY=your-32-character-encryption-key-here
+```
+
+<Callout type="warning">
+**Backup this key!** If you lose it, you cannot recover saved credentials. Store it in a password manager.
+</Callout>
+
+### Network Security Checklist
+
+- [ ] n8n not exposed directly to the internet
+- [ ] Reverse proxy with SSL configured
+- [ ] Strong owner password with 2FA enabled
+- [ ] SMTP configured for user invites (if multi-user)
+- [ ] Telemetry disabled: `N8N_TELEMETRY_DISABLED=true`
+- [ ] Regular backups of `n8n_data` volume
+
+## Performance & Scaling
+
+### When SQLite Isn't Enough
+
+Most homelabs run fine with SQLite—the default database. PostgreSQL becomes necessary when:
+
+- You're running queue mode (more on this)
+- Multi-user environments with concurrent access
+- You want proper database backup tooling
+
+### Queue Mode for Heavy Workloads
+
+If you're running automation at scale—hundreds of executions per hour—queue mode distributes load across worker processes.
+
+**How it works:**
+1. Main instance handles triggers and webhooks
+2. Redis queues pending executions
+3. Workers pull jobs and execute workflows
+4. Results sync back to the database
+
+**Setup:**
+
+```yaml
+# Add Redis to docker-compose.yml
+  redis:
+    image: redis:7-alpine
+    container_name: n8n-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+```
+
+Configure n8n for queue mode:
+
+```bash
+EXECUTIONS_MODE=queue
+QUEUE_BULL_REDIS_HOST=redis
+QUEUE_BULL_REDIS_PORT=6379
+```
+
+Run workers:
+
+```bash
+docker run -d --name n8n-worker-1 \
+  -e EXECUTIONS_MODE=queue \
+  -e QUEUE_BULL_REDIS_HOST=your-redis-host \
+  -v n8n_data:/home/node/.n8n \
+  docker.n8n.io/n8nio/n8n worker
+```
+
+<Callout type="info">
+**Homelab reality check:** Most setups don't need queue mode. Start simple, add scaling when you hit limits.
+</Callout>
+
+### Resource Requirements
+
+| Setup | RAM | CPU | Storage |
+|-------|-----|-----|---------|
+| Minimal (SQLite) | 512 MB | 1 core | 1 GB |
+| Recommended (PostgreSQL) | 1-2 GB | 2 cores | 5 GB |
+| Queue Mode | 2+ GB | 2+ cores | 10+ GB |
+
+## n8n vs Zapier vs Make: The Honest Comparison
+
+Let's be real—n8n isn't the right choice for everyone.
+
+| Feature | n8n Self-Hosted | Zapier | Make |
+|---------|-----------------|--------|------|
+| **Pricing** | Free forever | $0-89+/month | $0-29+/month |
+| **Self-hosting** | ✅ | ❌ | ❌ |
+| **Integrations** | 400+ | 6,000+ | 1,500+ |
+| **AI native** | ✅ LangChain | Limited | Limited |
+| **Code flexibility** | JS/Python + npm | Limited | Limited |
+| **Data privacy** | Full control | Cloud-based | Cloud-based |
+| **Unlimited workflows** | ✅ | Tier-limited | Tier-limited |
+| **Support** | Community | Email/Chat | Email/Chat |
+| **Setup complexity** | Medium-High | Zero | Low |
+
+### Choose n8n Self-Hosted If...
+
+- You're already running a homelab or self-hosted infrastructure
+- Data privacy is non-negotiable
+- You want AI workflows with local models
+- You need unlimited workflows without usage billing
+- You're comfortable with Docker and basic sysadmin tasks
+
+### Choose Zapier/Make If...
+
+- You need a specific niche integration not in n8n
+- Zero technical setup is a hard requirement
+- You're automating a small, predictable number of tasks
+- SLA-backed support is essential
+
+<Callout type="tip">
+**Hybrid approach:** Nothing stops you from using both. Keep sensitive automations in self-hosted n8n, and use Zapier for that one obscure SaaS integration.
+</Callout>
+
+## Cost Savings: The Numbers
+
+Let's quantify the savings for a typical homelab user.
+
+**Scenario:** You run 5 automations:
+1. Home Assistant alerts to Discord (50/day)
+2. Server health monitoring (288/day - every 5 min)
+3. Backup status notifications (1/day)
+4. Calendar reminders (3/day)
+5. AI document queries (10/day)
+
+**Monthly executions:** ~10,000+
+
+| Platform | Monthly Cost | Annual Cost |
+|----------|-------------|-------------|
+| Zapier (Professional) | $49 | $588 |
+| Make (Core) | $9 | $108 |
+| n8n Self-Hosted | $0 | $0 |
+
+**Infrastructure costs for n8n:**
+- Small VPS or existing homelab server: $0-10/month (if dedicated)
+- Electricity (if using existing hardware): ~$2-5/month
+
+**Net savings:** $500-1,000+ annually compared to Zapier, $50-100+ compared to Make.
+
+Over 3 years, self-hosting n8n saves you $1,500-3,000 compared to Zapier's Professional plan—and you get unlimited users and workflows.
+
+## Getting Started: Your First Workflow
+
+Ready to build something? Here's a simple first project: a webhook that accepts data and sends it to Discord.
+
+**[Screenshot: The workflow canvas showing a basic "Webhook → Discord" flow ready for creation]**
+
+1. **Create the trigger:** Add a Webhook node. Set method to POST and copy your webhook URL.
+
+2. **Process the data:** Add a Code node (optional) to format the message.
+
+3. **Send notification:** Add a Discord node, configure your webhook URL from Discord's integrations settings.
+
+4. **Activate:** Toggle the workflow to active. Test with a POST request.
+
+```bash
+curl -X POST https://your-n8n-instance/webhook/YOUR-PATH \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello from n8n!"}'
+```
+
+## Resources & Next Steps
+
+- **[n8n Documentation](https://docs.n8n.io)** — Comprehensive guides for every feature
+- **[Workflow Templates](https://n8n.io/workflows)** — 8,000+ ready-to-use templates
+- **[Community Forum](https://community.n8n.io)** — Tutorials, help, and discussions
+- **[Self-Hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit)** — Docker Compose for n8n + Ollama + Qdrant
+- **[Hosting Configurations](https://github.com/n8n-io/n8n-hosting)** — Official Docker Compose templates for various setups
+
+---
+
+Self-hosting n8n transforms your homelab from a collection of isolated services into an intelligent, interconnected system. The learning curve is real, but the payoff—unlimited automation, complete data privacy, and zero per-execution billing—is worth it.
+
+Start simple: get n8n running, build one workflow, see the value. Then expand. Before long, you'll wonder how you lived without it.
