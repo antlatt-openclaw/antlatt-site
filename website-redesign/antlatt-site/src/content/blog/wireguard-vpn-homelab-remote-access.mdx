@@ -1,0 +1,371 @@
+---
+title: "WireGuard VPN: Secure Remote Access for Your Homelab"
+description: "Set up WireGuard with wg-easy for simple, secure remote access to your homelab. Docker-based installation with web UI management."
+pubDate: 2026-02-27
+author: "Anthony Lattanzio"
+tags: ["homelab", "vpn", "wireguard", "docker", "remote-access", "security", "wg-easy"]
+image: "/images/blog/wireguard-vpn-homelab-remote-access/hero.webp"
+imageAlt: "WireGuard logo with a secure tunnel visualization connecting to a home server"
+---
+
+Remote access to your homelab shouldn't require a degree in networking. Yet for years, setting up a VPN meant wrestling with OpenVPN's complex configuration or dealing with IPsec's notoriously finicky setup. **WireGuard** changed everything—simple, fast, and secure. Combined with **wg-easy**, you get a one-container solution with a web UI for managing your VPN.
+
+## Why WireGuard?
+
+WireGuard is modern VPN protocol that runs in the Linux kernel. It's:
+
+- **Fast** — Benchmarks show 1+ Gbps throughput
+- **Small** — ~4,000 lines of code (vs OpenVPN's 100,000+)
+- **Simple** — Configuration as easy as SSH keys
+- **Secure** — Modern cryptography (ChaCha20, Poly1305, Curve25519)
+- **Cross-platform** — Linux, Windows, macOS, iOS, Android
+
+| Feature | WireGuard | OpenVPN | Tailscale |
+|---------|-----------|---------|-----------|
+| Speed | Excellent | Good | Good |
+| Setup | Medium | Hard | Easy |
+| Self-hosted | ✅ | ✅ | Partial |
+| Requires account | ❌ | ❌ | ✅ |
+| Kernel support | ✅ | ❌ | ✅ |
+
+## wg-easy: The Simplest Deployment
+
+wg-easy wraps WireGuard in a Docker container with a clean web UI. You get:
+
+- One-click client creation
+- QR codes for mobile setup
+- Downloadable config files
+- Connection status dashboard
+- No command-line management needed
+
+## Prerequisites
+
+- A Linux server (Ubuntu/Debian recommended)
+- Docker and Docker Compose installed
+- A public IP or dynamic DNS hostname
+- Router access for port forwarding
+
+## Docker Compose Setup
+
+Create your configuration:
+
+```bash
+mkdir ~/wg-easy
+cd ~/wg-easy
+```
+
+Create `docker-compose.yml`:
+
+```yaml
+version: "3.8"
+services:
+  wg-easy:
+    image: ghcr.io/wg-easy/wg-easy:latest
+    container_name: wg-easy
+    restart: unless-stopped
+    ports:
+      - "51820:51820/udp"  # WireGuard port
+      - "51821:51821/tcp"  # Web UI (internal only!)
+    volumes:
+      - ./wg-easy:/etc/wireguard
+    environment:
+      # Your public IP or DDNS hostname
+      WG_HOST: "your-ddns-domain.com"
+      
+      # WireGuard port (must match ports above)
+      WG_PORT: "51820"
+      
+      # Your internal network range (change to match yours!)
+      WG_ALLOWED_IPS: "192.168.1.0/24"
+      
+      # DNS for clients
+      WG_DEFAULT_DNS: "1.1.1.1"
+      
+      # Web UI password (use bcrypt hash for production)
+      PASSWORD: "your-secure-password-here"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+```
+
+:::warning
+Don't expose port 51821 to the internet! Only bind to localhost if possible.
+:::
+
+## Configuration Options
+
+### Split Tunneling vs Full Tunneling
+
+**Split Tunneling** (Recommended for Homelab):
+
+```yaml
+WG_ALLOWED_IPS: "192.168.1.0/24"
+```
+
+- Only traffic to your homelab goes through VPN
+- Regular internet traffic uses your normal connection
+- Better performance for general browsing
+
+**Full Tunneling** (Privacy-Focused):
+
+```yaml
+WG_ALLOWED_IPS: "0.0.0.0/0, ::/0"
+```
+
+- ALL traffic routes through VPN
+- Privacy protection on public WiFi
+- Slightly slower for general internet use
+
+### Multiple Network Ranges
+
+If you need access to multiple subnets:
+
+```yaml
+WG_ALLOWED_IPS: "192.168.1.0/24,192.168.10.0/24,10.0.0.0/8"
+```
+
+## Starting WireGuard
+
+```bash
+docker compose up -d
+```
+
+Check status:
+
+```bash
+docker logs wg-easy
+```
+
+## Port Forwarding
+
+On your router, forward UDP port 51820 to your WireGuard server's internal IP.
+
+Port forwarding steps vary by router:
+1. Log into router admin panel
+2. Find "Port Forwarding" or "NAT" settings
+3. Create new rule: UDP 51820 → [Server IP]:51820
+4. Save and apply
+
+### Dynamic DNS
+
+If you don't have a static public IP, set up DDNS:
+
+- **Cloudflare DDNS** — Update via script or Docker container
+- **No-IP** — Free dynamic DNS service
+- **DuckDNS** — Free, simple option
+
+Update `WG_HOST` with your DDNS hostname.
+
+## Securing the Web UI
+
+The web UI on port 51821 should NEVER be exposed to the internet. Here are secure access methods:
+
+### SSH Tunnel (Simplest)
+
+```bash
+ssh -L 51821:localhost:51821 user@your-server
+```
+
+Then access: `http://localhost:51821`
+
+### Reverse Proxy with Auth
+
+Using Caddy:
+
+```caddyfile
+wg-admin.yourdomain.com {
+    reverse_proxy localhost:51821
+    basicauth * {
+        admin $2a$14$hashed-password-here
+    }
+}
+```
+
+### Cloudflare Tunnel
+
+Zero port exposure:
+
+1. Install cloudflared on your server
+2. Create tunnel to `localhost:51821`
+3. Access via Cloudflare Access with authentication
+
+## Creating Clients
+
+1. Access the web UI via SSH tunnel or reverse proxy
+2. Log in with your password
+3. Click "New" to create a client
+4. Give it a name (e.g., "iPhone", "Laptop")
+
+### Mobile Setup (iOS/Android)
+
+1. Install WireGuard app from App Store/Play Store
+2. In the app, tap "Add Tunnel"
+3. Select "Scan QR Code"
+4. Scan the QR code from wg-easy dashboard
+5. Enable the tunnel
+
+### Desktop Setup (Windows/macOS/Linux)
+
+1. Download the config file from wg-easy
+2. Install WireGuard client from [wireguard.com/install](https://www.wireguard.com/install/)
+3. Import the `.conf` file
+4. Activate the tunnel
+
+## Client Configuration Deep Dive
+
+The generated config looks like this:
+
+```ini
+[Interface]
+PrivateKey = <client-private-key>
+Address = 10.8.0.2/24
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = <server-public-key>
+Endpoint = your-ddns-domain.com:51820
+AllowedIPs = 192.168.1.0/24
+PersistentKeepalive = 25
+```
+
+### Key Settings Explained
+
+- **PersistentKeepalive**: Keeps connection alive behind NAT. Essential for mobile clients.
+- **AllowedIPs**: Which traffic routes through VPN. Change for different needs.
+- **DNS**: DNS server used when connected. Point to Pi-hole for ad blocking!
+
+## Testing Your Connection
+
+```bash
+# From your client device
+ping 192.168.1.1  # Your server's internal IP
+
+# Check your public IP
+curl ifconfig.me
+```
+
+If everything works, you can access your homelab services as if you were on the local network.
+
+## Firewall Configuration
+
+On your server:
+
+```bash
+# Allow WireGuard port
+sudo ufw allow 51820/udp
+
+# Allow forwarding
+sudo ufw reload
+```
+
+Ensure IP forwarding is enabled:
+
+```bash
+# Check
+sysctl net.ipv4.ip_forward
+
+# Should output: net.ipv4.ip_forward = 1
+```
+
+## Troubleshooting
+
+### Can't Connect
+
+1. **Check firewall**: `sudo ufw status`
+2. **Verify port forwarding**: Use online port checker
+3. **Check logs**: `docker logs wg-easy`
+4. **Verify WG_HOST**: Must match your public IP/hostname
+
+### Connected But No Access to Local Services
+
+1. **Check WG_ALLOWED_IPS**: Must include your network range
+2. **Verify IP forwarding**: `sysctl net.ipv4.ip_forward`
+3. **Check routing**: Server must route between VPN and LAN
+4. **Local firewall**: May block traffic from VPN subnet
+
+### Mobile Won't Connect on Cellular
+
+Some ISPs block UDP traffic or WireGuard specifically:
+
+1. Try alternative ports (443, 80)
+2. Use TCP fallback (requires additional config)
+3. Consider Tailscale as a fallback for cellular
+
+### Disconnects After Idle
+
+Add to client config:
+
+```ini
+PersistentKeepalive = 25
+```
+
+This sends a heartbeat every 25 seconds to keep NAT mappings active.
+
+## Advanced: Multiple Sites
+
+For connecting multiple locations:
+
+```yaml
+# Site A - 192.168.1.0/24
+# Site B - 192.168.2.0/24
+
+# Site A config
+WG_ALLOWED_IPS: "192.168.1.0/24,192.168.2.0/24"
+
+# Site B config  
+WG_ALLOWED_IPS: "192.168.2.0/24,192.168.1.0/24"
+```
+
+Site-to-site requires additional routing configuration beyond wg-easy's scope.
+
+## Integration with Homelab Services
+
+Once connected via WireGuard, you have full access to:
+
+- **Home Assistant** — `https://homeassistant.local:8123`
+- **Proxmox** — `https://proxmox.local:8006`
+- **TrueNAS** — `https://truenas.local`
+- **Docker containers** — Access any internal service
+- **Pi-hole admin** — `https://pihole.local/admin`
+- **Router admin** — For remote configuration
+
+No more exposing services to the internet!
+
+## Backup and Recovery
+
+Your WireGuard state lives in `./wg-easy/`:
+
+```bash
+# Backup
+tar -czf wg-easy-backup-$(date +%Y%m%d).tar.gz ~/wg-easy/
+
+# Restore
+docker compose down
+tar -xzf wg-easy-backup-YYYYMMDD.tar.gz -C ~/
+docker compose up -d
+```
+
+## Security Checklist
+
+- [ ] Strong password for web UI (bcrypt hash)
+- [ ] Web UI NOT exposed to internet
+- [ ] Only necessary ports forwarded
+- [ ] DDNS configured if dynamic IP
+- [ ] Regular backups of wg-easy config
+- [ ] Unused clients removed from dashboard
+- [ ] Strong encryption (default WireGuard settings)
+
+## What's Next?
+
+With WireGuard running:
+
+- **Point DNS to Pi-hole** — Block ads on mobile
+- **Set up multiple profiles** — Different clients for different needs
+- **Consider Tailscale for travel** — UDP blocking workaround
+- **Monitor connections** — Check active clients in wg-easy
+- **Document your setup** — You'll thank yourself later
+
+Your homelab, accessible from anywhere, secured by modern cryptography. That's the WireGuard way.
