@@ -161,6 +161,23 @@ imageAlt: "Descriptive alt text"
 - **Script**: `skills/comfyui/scripts/generate_image.py`
 - **Models**: SDXL photorealistic, anime, Flux
 
+## Pre-Check: Existing Article Detection
+
+**CRITICAL: Before starting any article, check for existing content.**
+
+```bash
+# Check both blog/ and builds/ folders
+ls src/content/blog/ | grep -i [slug-keywords]
+ls src/content/builds/ | grep -i [slug-keywords]
+```
+
+If an article exists:
+- **Skip the topic entirely** - do NOT create a duplicate
+- Log the conflict: "Skipping [topic] - already exists at blog/[slug].mdx"
+- Move to the next topic in the queue
+
+This prevents wasted agent cycles on duplicate content.
+
 ## Quick Start
 
 To create a new article:
@@ -168,26 +185,29 @@ To create a new article:
 ```
 User: "Write an article about [TOPIC]"
 
-1. Create draft directory: drafts/[slug]/
-2. Spawn Sarah for research
-3. On completion, spawn Caitlin to write
-4. On completion, spawn Renee for images
-5. Auto-deploy to Vercel (no approval needed)
-6. Notify user with live Vercel URL
-7. On "approve" → deploy to antlatt.com
-8. On "deny" → remove from blog/, keep draft
+1. **Check for existing article** ← NEW STEP
+   - If exists: skip topic, notify user
+2. Create draft directory: drafts/[slug]/
+3. Spawn Sarah for research
+4. On completion, spawn Caitlin to write
+5. On completion, spawn Renee for images
+6. Auto-deploy to Vercel (no approval needed)
+7. Notify user with live Vercel URL
+8. On "approve" → deploy to antlatt.com
+9. On "deny" → remove from blog/, keep draft
 ```
 
 ## Daily Cron (2 Articles)
 
 The 2am cron job produces **two articles per night**:
 
-1. Find 2 distinct topics
-2. Execute full pipeline for article 1 → Vercel
-3. Execute full pipeline for article 2 → Vercel
-4. Notify with both Vercel URLs
-5. User replies "approve 1" or "approve 2" individually
-6. Each approval deploys that specific article to local
+1. **Check for existing articles first** - skip any topic that already has content
+2. Find 2 distinct topics (that don't already exist!)
+3. Execute full pipeline for article 1 → Vercel
+4. Execute full pipeline for article 2 → Vercel
+5. Notify with both Vercel URLs
+6. User replies "approve 1" or "approve 2" individually
+7. Each approval deploys that specific article to local
 
 ## Approval Words
 
