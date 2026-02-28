@@ -1,0 +1,13 @@
+# Build output
+dist/
+
+# Large video files - served locally, not on Vercel
+public/videos/
+
+# Dependencies
+node_modules/
+
+# Development files
+.astro/
+.env
+.env.*
