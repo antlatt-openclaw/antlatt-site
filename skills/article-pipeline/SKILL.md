@@ -89,8 +89,14 @@ npm run build
 
 # Deploy to Vercel
 cd /root/.openclaw/antlatt-workspace/website-redesign/antlatt-site
-unset VERCEL_ORG_ID && unset VERCEL_PROJECT_ID && npx vercel --prod --yes
+npx vercel --prod --yes
 ```
+
+**Vercel Deployment Notes:**
+- `.vercelignore` excludes `public/videos/` (12GB, exceeds Vercel's 100MB file limit)
+- Videos are only served from local Docker container, not Vercel
+- Project ID and Org ID are stored in `.vercel/project.json`
+- If deployment fails, check `.vercelignore` includes large files
 
 Get the live preview URL: `https://antlatt-site.vercel.app/blog/[slug]/`
 
@@ -139,13 +145,13 @@ website-redesign/antlatt-site/
 ---
 title: "Article Title"
 description: "SEO-friendly description"
-pubDate: 2026-02-25
-author: "Anthony Lattanzio"
+date: 2026-02-25
 tags: ["tag1", "tag2"]
 image: "/images/blog/[slug]/hero.webp"
-imageAlt: "Descriptive alt text"
 ---
 ```
+
+Note: Use `date` (not `pubDate`) for the date field.
 
 ## Site Context
 
