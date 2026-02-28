@@ -167,6 +167,69 @@ Note: Use `date` (not `pubDate`) for the date field.
 - **Script**: `skills/comfyui/scripts/generate_image.py`
 - **Models**: SDXL photorealistic, anime, Flux
 
+## ⚡ Chain Reaction (CRITICAL)
+
+**When a subagent finishes, you MUST immediately spawn the next phase in the same response.**
+
+This is non-negotiable. When you receive `✅ Subagent X finished`, do NOT just summarize and wait. Execute the next step immediately.
+
+### Chaining Rules
+
+| Subagent Completes | Immediate Action |
+|-------------------|------------------|
+| `✅ Subagent sarah finished` | `sessions_spawn(agentId="caitlin", ...)` |
+| `✅ Subagent caitlin finished` | `sessions_spawn(agentId="renee", ...)` |
+| `✅ Subagent renee finished` | Deploy locally with `./deploy.sh` |
+
+### Example Responses
+
+**WRONG - Waiting for user to ask:**
+```
+✅ Subagent sarah finished
+
+Research complete! I've compiled information about [topic]...
+[waits for user to ask "is Caitlin writing?"]
+```
+
+**CORRECT - Immediate chain:**
+```
+✅ Subagent sarah finished
+
+Research complete. Spawning Caitlin to write...
+
+sessions_spawn(agentId="caitlin", task="Write article about [TOPIC]...")
+```
+
+### Chain Reaction Code Pattern
+
+When you see a completion message, your response should:
+
+1. **First**: Spawn the next agent or execute deployment
+2. **Then**: Optionally provide a brief status update
+
+```
+When Sarah finishes:
+  → Immediately spawn Caitlin (do NOT wait)
+
+When Caitlin finishes:
+  → Immediately spawn Renee (do NOT wait)
+
+When Renee finishes:
+  → Immediately run ./deploy.sh (do NOT wait)
+```
+
+### Skip Vercel Deployment
+
+Due to Vercel CLI timeout issues, **skip Vercel deployment** and deploy directly to local:
+
+```bash
+cd /root/.openclaw/antlatt-workspace/website-redesign/antlatt-site
+cp drafts/[slug]/article.mdx src/content/blog/[slug].mdx
+./deploy.sh
+```
+
+Then notify user: "Article live at https://www.antlatt.com/blog/[slug]/"
+
 ## Pre-Check: Existing Article Detection
 
 **CRITICAL: Before starting any article, check for existing content.**
