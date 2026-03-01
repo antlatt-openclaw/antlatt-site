@@ -1,0 +1,318 @@
+---
+title: "Run Your AI Agent in the Cloud: A Guide to Moltworker"
+description: "Skip the Mac mini. Deploy OpenClaw on Cloudflare's edge network with Moltworker for always-on AI assistance without dedicated hardware."
+date: 2026-03-01
+tags: ["openclaw", "cloudflare", "self-hosted", "ai-agent", "homelab"]
+image: "/images/blog/moltworker-self-hosted-ai-agent/hero.webp"
+---
+
+Remember the viral moment in January 2026? Mac minis were flying off shelves as everyone scrambled to run their own AI assistants locally. The appeal was obvious: your AI agent, your infrastructure, your data. But not everyone wants another box humming under their desk.
+
+Cloudflare had a different idea: **What if you could run the same powerful AI assistant online, securely, without buying hardware?**
+
+Enter Moltworker—a deployment package that runs OpenClaw on Cloudflare's global edge network. Same assistant, different home.
+
+## What is OpenClaw?
+
+Before diving into Moltworker, let's cover the foundation. **OpenClaw** (formerly Moltbot, originally Clawd) is an open-source personal AI assistant that runs on your own infrastructure. Think of it as your always-available digital helper that lives in your chat apps—Telegram, Discord, Slack, WhatsApp, Signal, iMessage, Teams, Matrix, and more.
+
+What makes OpenClaw different from ChatGPT or Claude.ai? It's yours. Your keys, your data, your rules. The AI lives on your hardware (or infrastructure), responds from your existing chat apps, and can be extended with custom skills—browser automation, voice synthesis, calendar management, you name it.
+
+The project exploded in popularity, reaching over 100,000 GitHub stars and 2 million visitors in a single week. Clearly, people want AI agents they can own and control.
+
+## What is Moltworker?
+
+Moltworker is a **Cloudflare-specific deployment** of OpenClaw. Instead of running on your laptop or a VPS, it runs in Cloudflare's Sandbox containers—a secure, isolated environment that scales automatically and requires zero hardware management.
+
+### The Architecture
+
+```
+Users/Chat Platforms
+        │
+        ▼
+┌─────────────────────────────────┐
+│    Cloudflare Access (Auth)     │
+│    Zero Trust authentication    │
+└───────────────┬─────────────────┘
+                │
+                ▼
+┌─────────────────────────────────┐
+│      Entrypoint Worker          │
+│    (API router + proxy)         │
+└───────────────┬─────────────────┘
+                │
+        ┌───────┴───────┐
+        ▼               ▼
+┌──────────────┐  ┌─────────────────┐
+│ AI Gateway   │  │ Sandbox Container│
+│ (LLM proxy)  │  │ (OpenClaw runtime)│
+└──────────────┘  └────────┬────────┘
+                           │
+                   ┌───────┴───────┐
+                   ▼               ▼
+           ┌──────────────┐ ┌───────────────┐
+           │ Browser      │ │ R2 Storage    │
+           │ Rendering    │ │ (persistent)  │
+           └──────────────┘ └───────────────┘
+```
+
+The architecture is elegant in its simplicity:
+
+- **Entrypoint Worker**: Routes API calls and proxies between Cloudflare services and the isolated container
+- **Sandbox Container**: Runs the OpenClaw Gateway runtime in a secure, isolated environment
+- **AI Gateway**: Centralizes LLM access with unified billing, caching, and rate limiting
+- **Browser Rendering**: Headless Chromium for web automation tasks
+- **R2 Storage**: Persistent storage that survives container restarts
+- **Zero Trust Access**: Built-in authentication without rolling your own auth system
+
+:::tip
+Moltworker isn't an officially supported Cloudflare product—it's a proof-of-concept demonstrating what's possible with their Developer Platform. But it's fully functional and actively maintained.
+:::
+
+## Getting Started: Installation
+
+Ready to deploy? Here's how to get Moltworker running on Cloudflare.
+
+### Prerequisites
+
+You'll need:
+
+- A Cloudflare Workers **Paid Plan** ($5/month)—required for Sandbox containers
+- An AI model access method (either an Anthropic API key or AI Gateway with Unified Billing)
+
+### Step 1: Clone and Install
+
+```bash
+# Clone the repository
+git clone https://github.com/cloudflare/moltworker.git
+cd moltworker
+
+# Install dependencies
+npm install
+```
+
+### Step 2: Configure Secrets
+
+:::warning
+Keep your tokens secure! Never commit secrets to version control.
+:::
+
+```bash
+# Option A: Use Anthropic API directly
+npx wrangler secret put ANTHROPIC_API_KEY
+
+# Option B: Use Cloudflare AI Gateway (no separate provider key needed)
+npx wrangler secret put CLOUDFLARE_AI_GATEWAY_API_KEY
+npx wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
+npx wrangler secret put CF_AI_GATEWAY_GATEWAY_ID
+
+# Generate and save your gateway token (you'll need this later!)
+export MOLTBOT_GATEWAY_TOKEN=$(openssl rand -hex 32)
+echo "$MOLTBOT_GATEWAY_TOKEN" | npx wrangler secret put MOLTBOT_GATEWAY_TOKEN
+```
+
+### Step 3: Set Up Authentication
+
+Moltworker uses Cloudflare Access for zero-trust authentication—no need to build your own login system.
+
+1. Go to **Workers & Pages** dashboard in Cloudflare
+2. Select your Worker → Settings → Domains & Routes
+3. Enable **Cloudflare Access** on your workers.dev domain
+4. Configure identity providers (email OTP, Google, GitHub, etc.)
+5. Copy the Application Audience (AUD) tag
+
+```bash
+# Configure Access secrets
+npx wrangler secret put CF_ACCESS_TEAM_DOMAIN  # e.g., myteam.cloudflareaccess.com
+npx wrangler secret put CF_ACCESS_AUD           # The AUD tag from Access config
+```
+
+### Step 4: Deploy
+
+```bash
+npm run deploy
+```
+
+### Step 5: Access Your Assistant
+
+Navigate to your worker's admin interface:
+
+```
+https://your-worker.workers.dev/?token=YOUR_GATEWAY_TOKEN
+```
+
+From here, you can pair devices, manage integrations, and monitor your assistant.
+
+### Optional: Add Chat Platforms
+
+```bash
+# Telegram integration
+npx wrangler secret put TELEGRAM_BOT_TOKEN
+
+# Discord integration
+npx wrangler secret put DISCORD_BOT_TOKEN
+
+# Slack integration
+npx wrangler secret put SLACK_BOT_TOKEN
+npx wrangler secret put SLACK_APP_TOKEN
+```
+
+### Optional: Enable Persistent Storage
+
+By default, container data is ephemeral. Add R2 storage for persistence:
+
+```bash
+npx wrangler secret put R2_ACCESS_KEY_ID
+npx wrangler secret put R2_SECRET_ACCESS_KEY
+npx wrangler secret put CF_ACCOUNT_ID
+```
+
+With R2 configured, your assistant's memory and settings persist across restarts.
+
+## The Cost Question: Moltworker vs. Local Hardware
+
+Let's talk money. How does running OpenClaw on Cloudflare compare to the Mac mini approach?
+
+### Moltworker Costs (24/7 Operation)
+
+| Resource | Provisioned | Monthly Cost |
+|----------|-------------|--------------|
+| Memory | 4 GiB | ~$26 |
+| CPU (10% utilization) | 1/2 vCPU | ~$2 |
+| Disk | 8 GB | ~$1.50 |
+| Workers Paid Plan | Required | $5 |
+| **Total** | | **~$34.50/mo** |
+
+### Cost Optimization Tips
+
+:::tip
+Set `SANDBOX_SLEEP_AFTER=10m` to sleep idle containers. A container running 4 hours/day costs approximately $5–6/month in compute, plus the $5 plan fee.
+:::
+
+Cold starts take 1–2 minutes when the container spins up from sleep—worth it if your assistant isn't getting constant traffic.
+
+### Local Hardware Comparison
+
+A Mac mini M2 costs approximately $600 upfront. Running 24/7 adds roughly $5–10/month in electricity. The break-even point against Moltworker's ~$35/month? Around 18–24 months.
+
+But the calculation isn't just financial. Consider:
+
+- **Uptime**: Your hardware can fail. Cloudflare's network has redundancy built in.
+- **Maintenance**: Your server needs updates, security patches, and monitoring. Moltworker handles this.
+- **Flexibility**: Scale up or down instantly with Moltworker. Buying a new Mac mini when you need more power is a weekend project.
+
+## Moltworker vs. Local OpenClaw: Which Should You Choose?
+
+| Aspect | Local OpenClaw | Moltworker |
+|--------|----------------|------------|
+| Hardware | Mac mini / VPS required | No hardware needed |
+| Uptime | Depends on your hardware | Cloudflare's global network |
+| Maintenance | Your responsibility | Cloudflare manages infrastructure |
+| Cost | Hardware + electricity | Pay-as-you-go (~$5–35/mo) |
+| Security | Your network security | Cloudflare Zero Trust |
+| Data sovereignty | Full local control | R2 storage (your account) |
+| Cold start | N/A (always local) | 1–2 minutes if container slept |
+| Device features | Camera, screen recording, system commands | Limited (no physical device access) |
+
+### Choose Moltworker When You:
+
+- Don't want to buy or maintain dedicated hardware
+- Need always-on availability without server management
+- Want Cloudflare's global edge network for low latency
+- Prefer built-in Zero Trust authentication
+- Want unified LLM cost tracking via AI Gateway
+
+### Choose Local OpenClaw When You:
+
+- Need complete data sovereignty (no cloud storage)
+- Require device-local actions (camera access, screen recording, system commands)
+- Prefer a one-time hardware cost over recurring fees
+- Need sub-millisecond response times
+- Want voice wake features (requires macOS/iOS/Android companion)
+
+## Use Cases for Homelab Enthusiasts
+
+Even if you *have* a homelab, Moltworker offers interesting possibilities:
+
+### Always-On Personal Assistant
+
+Set it up once, access from anywhere. Your assistant follows you across Telegram, Discord, Slack, and WhatsApp without maintaining a server rack.
+
+### Multi-Model Experimentation
+
+Swap between models without changing code:
+
+```bash
+npx wrangler secret put CF_AI_GATEWAY_MODEL
+# Examples: openai/gpt-4o, anthropic/claude-sonnet-4-5, workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast
+```
+
+Test different models through the same interface. Compare outputs. Find what works best for your use case.
+
+### Browser Automation at Scale
+
+Leverage Cloudflare Browser Rendering for web automation:
+
+- Navigate websites and capture screenshots
+- Fill forms and extract data
+- Generate video recordings of browsing sessions
+
+No need to maintain your own headless browser infrastructure.
+
+### Learning Platform
+
+Moltworker is an excellent way to study AI agent architecture:
+
+- Cloudflare Workers and container patterns
+- LLM routing and gateway patterns
+- Zero Trust authentication flows
+- Edge computing deployment strategies
+
+### Cost-Effective AI Experimentation
+
+Use AI Gateway's Unified Billing to prepay credits and access multiple LLM providers without managing separate API keys. Great for experimenting without commitment.
+
+## Security Considerations
+
+:::warning
+All AI agents are vulnerable to prompt injection. Use strong models with better injection resistance (Claude is recommended). Study the [OpenClaw security best practices](https://docs.openclaw.ai/gateway/security) before deployment.
+:::
+
+Moltworker adds multiple security layers:
+
+1. **Cloudflare Access**: Protects admin routes with zero-trust policies
+2. **Gateway Token**: Required for the admin interface
+3. **Device Pairing**: Each device must be explicitly approved
+
+But the AI itself remains potentially manipulable. Never give your assistant access to sensitive systems without understanding the risks.
+
+## A Brief History of Names
+
+The project underwent several renames:
+
+| Name | Timeline | Why It Changed |
+|------|----------|----------------|
+| Clawd | November 2025 | Anthropic's legal team requested reconsideration |
+| Moltbot | Late 2025 | Lobsters molt to grow—fitting for an evolving project |
+| OpenClaw | January 30, 2026 | Reflects open-source, community-driven nature |
+
+The mascot remains a lobster. Some things shouldn't change.
+
+## Final Thoughts
+
+Moltworker represents an interesting shift in how we think about AI assistants. The old binary—cloud vs. local—is giving way to something more nuanced. You can have the control of self-hosting without the hardware headaches.
+
+For homelab enthusiasts, it's a compelling middle ground: all the fun of deploying and configuring your AI agent, but none of the 3 AM pages when your server overheats. For everyone else, it's simply the easiest way to run a powerful, always-on personal AI assistant.
+
+The project is open source, actively maintained, and backed by Cloudflare's infrastructure. Whether you're tired of hardware or just curious about edge computing, it's worth a look.
+
+:::tip
+Ready to start? Check out the [Moltworker GitHub repo](https://github.com/cloudflare/moltworker) and the [OpenClaw documentation](https://docs.openclaw.ai) for detailed setup guides.
+:::
+
+## Further Reading
+
+- [Cloudflare Blog: Moltworker Announcement](https://blog.cloudflare.com/moltworker-self-hosted-ai-agent/)
+- [OpenClaw Website](https://openclaw.ai)
+- [ClawHub Skill Registry](https://clawhub.com)
+- [Discord Community: Claw Crew](https://discord.gg/openclaw)
